@@ -1,0 +1,3924 @@
+<!DOCTYPE html>
+<!-- Fichier généré par tools/build-single.js à partir de index.html, style.css et js/*.js. Ne pas modifier à la main. -->
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#120004">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Tombola Casino — Nouvel An</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B0%3C/text%3E%3C/svg%3E">
+  <style>
+/* ==========================================================================
+   Tombola Casino — Nouvel An
+   Feuille de style unique : écran de jeu (machine à sous), administration,
+   fenêtres modales et vue imprimable. Aucune police ni image externe.
+   ========================================================================== */
+
+:root {
+  --red: #d0102e;
+  --red-dark: #5a0010;
+  --red-deep: #2a0008;
+  --gold: #ffd700;
+  --gold-2: #f5b400;
+  --gold-dark: #9a6b00;
+  --ink: #0b0003;
+  --cream: #fff6dc;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --danger: #f87171;
+  --vegas: "Rockwell Extra Bold", "Rockwell", "Arial Black", "Helvetica Neue", Impact, sans-serif;
+  --led: "DS-Digital", "Courier New", Consolas, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--cream);
+  background-color: var(--ink);
+  background-image:
+    radial-gradient(ellipse at 50% 40%, rgba(160, 0, 30, 0.55) 0%, rgba(60, 0, 12, 0.6) 55%, rgba(11, 0, 3, 1) 100%),
+    repeating-linear-gradient(45deg, rgba(255, 215, 0, 0.035) 0 2px, transparent 2px 26px),
+    repeating-linear-gradient(-45deg, rgba(255, 215, 0, 0.035) 0 2px, transparent 2px 26px);
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* L'écran de jeu occupe exactement la fenêtre, sans défilement. */
+body[data-screen="game"] {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+button { font: inherit; cursor: pointer; touch-action: manipulation; }
+
+/* ------------------------------ Bannières -------------------------------- */
+
+.demo-banner {
+  display: none;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 6px 12px;
+  background: repeating-linear-gradient(135deg, #ffcc00 0 18px, #ffb300 18px 36px);
+  color: #111;
+  font-weight: 700;
+  font-size: clamp(13px, 2vmin, 20px);
+  z-index: 80;
+  position: relative;
+}
+body.is-demo .demo-banner { display: flex; }
+@media (max-width: 1000px) { .demo-text { display: none; } }
+.demo-label {
+  background: #111;
+  color: #ffcc00;
+  padding: 2px 14px;
+  border-radius: 4px;
+  letter-spacing: 0.15em;
+  font-family: var(--vegas);
+  font-size: 1.3em;
+  animation: demo-blink 1.6s steps(2, start) infinite;
+}
+@keyframes demo-blink { 50% { color: #fff; } }
+
+.storage-warning {
+  display: none;
+  flex: none;
+  padding: 8px 14px;
+  background: #b91c1c;
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  font-size: clamp(13px, 1.8vmin, 18px);
+}
+body.no-storage .storage-warning,
+body.save-failed .storage-warning { display: block; }
+
+/* ============================= ÉCRAN DE JEU ============================== */
+
+.screen-game {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Taille d'une case de rouleau : tout le reste en découle. */
+  /* --fit est réduit par slot.js si l'écran est trop petit (pas de défilement). */
+  --fit: 1;
+  --cell: calc(min(14.5vw, 21vh) * var(--fit));
+  --win-h: calc(var(--cell) * 2.1);
+  --reel-offset: calc((var(--win-h) - var(--cell)) / 2);
+}
+
+/* ------------------------------ Fronton ---------------------------------- */
+
+.marquee {
+  flex: none;
+  text-align: center;
+  /* Marge latérale : laisse la place aux boutons son / plein écran / admin. */
+  padding: 0.6vmin calc(3 * max(36px, 5.5vmin) + 3vmin);
+  background: linear-gradient(#1a0005, #3b000c);
+  border-bottom: 0.5vmin solid var(--gold-2);
+  box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.6);
+}
+.marquee-title {
+  margin: 0.4vmin 0;
+  font-family: var(--vegas);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: calc(clamp(1.4rem, 6vmin, 5rem) * (0.5 + var(--fit) / 2));
+  line-height: 1.1;
+  background: linear-gradient(180deg, #fffbe0 0%, #ffe066 35%, #ffc400 55%, #b37400 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 1.2vmin rgba(255, 196, 0, 0.55)) drop-shadow(0 0.3vmin 0 #5a0010);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ------------------------------ Ampoules --------------------------------- */
+
+.bulbs { display: flex; justify-content: space-between; pointer-events: none; }
+.bulbs-row { padding: 0 1vmin; }
+.bulb {
+  width: 1.5vmin;
+  height: 1.5vmin;
+  min-width: 7px;
+  min-height: 7px;
+  border-radius: 50%;
+  background: #fff3b0;
+  box-shadow: 0 0 0.6vmin 0.3vmin rgba(255, 220, 90, 0.9), 0 0 1.6vmin rgba(255, 200, 0, 0.6);
+  animation: bulb 1.2s infinite;
+}
+.bulb:nth-child(odd) { animation-delay: -0.6s; }
+@keyframes bulb {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.25; box-shadow: none; }
+}
+body.jackpot .bulb { animation: bulb-jackpot 0.25s infinite; }
+body.jackpot .bulb:nth-child(3n) { animation-delay: -0.08s; }
+body.jackpot .bulb:nth-child(3n+1) { animation-delay: -0.16s; }
+@keyframes bulb-jackpot {
+  0% { background: #fff3b0; box-shadow: 0 0 1.2vmin 0.5vmin #ffd700; }
+  33% { background: #ff4d6d; box-shadow: 0 0 1.2vmin 0.5vmin #ff0040; }
+  66% { background: #7cf; box-shadow: 0 0 1.2vmin 0.5vmin #3bf; }
+  100% { background: #fff3b0; box-shadow: 0 0 1.2vmin 0.5vmin #ffd700; }
+}
+
+/* ------------------------------ Disposition ------------------------------ */
+
+.game-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 32vw);
+  align-items: center;
+  gap: 3vmin;
+  padding: 2.5vmin 3vmin;
+}
+
+.machine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2vmin;
+  min-width: 0;
+}
+
+/* ---------------------------- Cadre de la machine ------------------------ */
+
+.machine-frame {
+  position: relative;
+  padding: 4.2vmin;
+  border-radius: 3.5vmin;
+  background:
+    linear-gradient(145deg, #fff3a8 0%, #e3a800 18%, #8a5a00 40%, #ffd84d 60%, #a86f00 82%, #ffe680 100%);
+  box-shadow:
+    0 0 0 0.6vmin #3b000c,
+    0 0 0 1vmin var(--gold-dark),
+    0 2vmin 5vmin rgba(0, 0, 0, 0.75),
+    0 0 6vmin rgba(255, 180, 0, 0.25);
+  transition: box-shadow 0.3s;
+}
+.machine-frame.is-jackpot {
+  animation: frame-glow 0.35s infinite alternate;
+}
+@keyframes frame-glow {
+  from { box-shadow: 0 0 0 0.6vmin #3b000c, 0 0 0 1vmin var(--gold-dark), 0 0 4vmin 1vmin rgba(255, 215, 0, 0.7); }
+  to { box-shadow: 0 0 0 0.6vmin #3b000c, 0 0 0 1vmin #fff, 0 0 9vmin 3vmin rgba(255, 60, 80, 0.8); }
+}
+
+.bulbs-edge { position: absolute; }
+.bulbs-top, .bulbs-bottom { left: 3.5vmin; right: 3.5vmin; height: 0; align-items: center; }
+.bulbs-top { top: 2.1vmin; }
+.bulbs-bottom { bottom: 2.1vmin; }
+.bulbs-left, .bulbs-right { top: 3.5vmin; bottom: 3.5vmin; width: 0; flex-direction: column; align-items: center; }
+.bulbs-left { left: 2.1vmin; }
+.bulbs-right { right: 2.1vmin; }
+
+/* ------------------------------- Rouleaux -------------------------------- */
+
+.reels {
+  position: relative;
+  display: flex;
+  gap: calc(var(--cell) * 0.1);
+  padding: calc(var(--cell) * 0.1);
+  background: linear-gradient(#120004, #2c0009);
+  border-radius: 2vmin;
+  box-shadow: inset 0 0 2vmin rgba(0, 0, 0, 0.9);
+}
+
+.reel {
+  position: relative;
+  width: calc(var(--cell) * 1.12);
+  height: var(--win-h);
+  overflow: hidden;
+  border-radius: 1.4vmin;
+  background: linear-gradient(90deg, #cfcfcf 0%, #ffffff 25%, #ffffff 75%, #cfcfcf 100%);
+  box-shadow: inset 0 0 calc(var(--cell) * 0.15) rgba(0, 0, 0, 0.5);
+}
+/* Effet cylindre : haut et bas assombris. */
+.reel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 32%, rgba(0, 0, 0, 0) 68%, rgba(0, 0, 0, 0.7) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+.reel-inner { position: absolute; inset: 0; }
+.reel-inner.bounce { animation: reel-bounce 0.32s ease-out; }
+@keyframes reel-bounce {
+  0% { transform: translateY(calc(var(--cell) * 0.1)); }
+  60% { transform: translateY(calc(var(--cell) * -0.03)); }
+  100% { transform: translateY(0); }
+}
+
+.strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  will-change: transform;
+}
+.reel.spinning .strip { filter: blur(1.2px); }
+
+.cell {
+  height: var(--cell);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.reel.suspense {
+  animation: suspense 0.45s infinite alternate;
+}
+@keyframes suspense {
+  from { box-shadow: inset 0 0 calc(var(--cell) * 0.15) rgba(0, 0, 0, 0.5), 0 0 1vmin 0.3vmin rgba(255, 215, 0, 0.5); }
+  to { box-shadow: inset 0 0 calc(var(--cell) * 0.15) rgba(0, 0, 0, 0.5), 0 0 3vmin 1vmin rgba(255, 215, 0, 1); }
+}
+.reel.win { animation: reel-win 0.3s infinite alternate; }
+@keyframes reel-win {
+  from { background: linear-gradient(90deg, #ffe680, #fffbe6 30%, #fffbe6 70%, #ffe680); }
+  to { background: linear-gradient(90deg, #ff9fb0, #fff 30%, #fff 70%, #ff9fb0); }
+}
+
+/* Ligne de gain : cadre doré autour de la rangée centrale. */
+.payline {
+  position: absolute;
+  left: calc(var(--cell) * 0.04);
+  right: calc(var(--cell) * 0.04);
+  top: 50%;
+  height: calc(var(--cell) * 1.02);
+  transform: translateY(-50%);
+  border-top: 0.45vmin solid rgba(255, 30, 60, 0.85);
+  border-bottom: 0.45vmin solid rgba(255, 30, 60, 0.85);
+  pointer-events: none;
+  z-index: 3;
+}
+.payline::before, .payline::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1.6vmin solid transparent;
+}
+.payline::before { left: calc(var(--cell) * -0.13); border-left-color: var(--red); }
+.payline::after { right: calc(var(--cell) * -0.13); border-right-color: var(--red); }
+
+/* ------------------------------- Symboles -------------------------------- */
+
+.sym {
+  display: inline-block;
+  line-height: 1;
+  font-size: calc(var(--cell) * 0.66);
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+.sym-seven {
+  font-family: var(--vegas);
+  font-weight: 900;
+  font-size: calc(var(--cell) * 0.82);
+  color: #e3001b;
+  -webkit-text-stroke: calc(var(--cell) * 0.018) #8a5a00;
+  text-shadow: 0 calc(var(--cell) * 0.03) 0 #ffd700, 0 0 calc(var(--cell) * 0.06) rgba(255, 200, 0, 0.6);
+  font-style: italic;
+}
+.sym-bar {
+  font-family: var(--vegas);
+  font-weight: 900;
+  font-size: calc(var(--cell) * 0.27);
+  color: #fff;
+  background: linear-gradient(#222, #000);
+  border: calc(var(--cell) * 0.03) solid var(--gold-2);
+  border-radius: calc(var(--cell) * 0.06);
+  padding: calc(var(--cell) * 0.05) calc(var(--cell) * 0.08);
+  letter-spacing: 0.05em;
+  box-shadow: 0 calc(var(--cell) * 0.025) 0 #8a5a00;
+}
+/* Petites versions (administration, impression). */
+.sym-mini { font-size: 1.3em; vertical-align: middle; }
+.sym-mini.sym-seven { font-size: 1.4em; -webkit-text-stroke: 0.5px #8a5a00; text-shadow: none; }
+.sym-mini.sym-bar { font-size: 0.65em; border-width: 2px; padding: 1px 4px; border-radius: 3px; box-shadow: none; }
+
+/* ------------------------------- Messages -------------------------------- */
+
+.game-message {
+  min-height: 1.4em;
+  text-align: center;
+  font-family: var(--vegas);
+  font-weight: 800;
+  font-size: clamp(1.1rem, 4.2vmin, 3.2rem);
+  color: var(--gold);
+  text-shadow: 0 0 1.2vmin rgba(255, 200, 0, 0.5), 0 0.3vmin 0 #000;
+  padding: 0.4vmin 2vmin;
+  border-radius: 1.5vmin;
+  max-width: 100%;
+}
+.game-message.msg-error { color: #fff; background: rgba(200, 0, 30, 0.85); text-shadow: none; }
+.game-message.msg-info { color: #fff; }
+.game-message.msg-win { color: #fff; animation: win-text 0.3s infinite alternate; }
+.game-message.msg-lose { color: #ffd1d1; }
+.game-message .btn { vertical-align: middle; margin-left: 1vmin; }
+.shake { animation: shake 0.45s; }
+@keyframes shake {
+  20% { transform: translateX(-1.5vmin); }
+  40% { transform: translateX(1.5vmin); }
+  60% { transform: translateX(-1vmin); }
+  80% { transform: translateX(1vmin); }
+}
+@keyframes win-text {
+  from { text-shadow: 0 0 1vmin #ffd700; transform: scale(1); }
+  to { text-shadow: 0 0 3vmin #ff3355; transform: scale(1.06); }
+}
+
+/* --------------------------- Panneau de saisie --------------------------- */
+
+.panel {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.8vmin;
+  min-width: 0;
+  padding: 2.4vmin;
+  border-radius: 2.5vmin;
+  background: linear-gradient(160deg, #3b000c, #170004);
+  border: 0.5vmin solid var(--gold-2);
+  box-shadow: 0 1.5vmin 4vmin rgba(0, 0, 0, 0.7), inset 0 0 2vmin rgba(255, 215, 0, 0.15);
+}
+
+.ticket-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1vmin 1.5vmin 1.4vmin;
+  background: #050001;
+  border: 0.4vmin solid var(--gold-dark);
+  border-radius: 1.5vmin;
+  box-shadow: inset 0 0 2vmin rgba(255, 0, 40, 0.25);
+}
+.ticket-label {
+  font-family: var(--vegas);
+  color: var(--gold);
+  font-size: clamp(0.8rem, 2.4vmin, 1.6rem);
+  letter-spacing: 0.2em;
+}
+.ticket-value {
+  font-family: var(--led);
+  font-weight: 700;
+  font-size: calc(clamp(2rem, 10vmin, 7rem) * var(--fit));
+  line-height: 1;
+  color: #ff2a3d;
+  text-shadow: 0 0 1.5vmin rgba(255, 40, 60, 0.9);
+  letter-spacing: 0.08em;
+  min-height: 1em;
+}
+.ticket-value.empty { color: #5a1018; text-shadow: none; animation: demo-blink 1.4s steps(2, start) infinite; }
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.3vmin;
+}
+.keypad button {
+  height: calc(clamp(44px, 9vh, 120px) * var(--fit));
+  font-family: var(--vegas);
+  font-weight: 900;
+  font-size: clamp(1.3rem, 5.5vmin, 3.6rem);
+  color: #2a0008;
+  background: linear-gradient(#fffdf3, #e9dcb8);
+  border: none;
+  border-radius: 1.6vmin;
+  box-shadow: 0 0.7vmin 0 #9a7b3a, 0 1vmin 1.5vmin rgba(0, 0, 0, 0.5);
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+.keypad button.key-alt { background: linear-gradient(#ffe066, #e0a800); }
+.keypad button:active { transform: translateY(0.6vmin); box-shadow: 0 0.1vmin 0 #9a7b3a; }
+
+.btn-play {
+  height: calc(clamp(60px, 12vh, 170px) * var(--fit));
+  font-family: var(--vegas);
+  font-weight: 900;
+  font-size: clamp(1.8rem, 8vmin, 5.5rem);
+  letter-spacing: 0.08em;
+  color: #fff;
+  text-shadow: 0 0.4vmin 0 #5a0010, 0 0 2vmin rgba(255, 255, 255, 0.5);
+  background: radial-gradient(ellipse at 50% 30%, #ff5468 0%, #d0102e 50%, #7a0016 100%);
+  border: 0.7vmin solid var(--gold);
+  border-radius: 2.5vmin;
+  box-shadow: 0 1vmin 0 #5a0010, 0 0 3vmin rgba(255, 40, 70, 0.6);
+  animation: play-pulse 1.4s ease-in-out infinite;
+  transition: transform 0.05s;
+}
+.btn-play:active { transform: translateY(0.8vmin); box-shadow: 0 0.2vmin 0 #5a0010; }
+@keyframes play-pulse {
+  50% { box-shadow: 0 1vmin 0 #5a0010, 0 0 6vmin rgba(255, 215, 0, 0.8); }
+}
+body.game-busy .btn-play,
+body.game-busy .keypad button { filter: grayscale(0.7) brightness(0.6); animation: none; pointer-events: none; }
+
+/* ------------------------------ Barre d'outils --------------------------- */
+
+.game-toolbar {
+  position: absolute;
+  top: 0.8vmin;
+  right: 0.8vmin;
+  display: flex;
+  gap: 0.8vmin;
+  z-index: 55;
+}
+.tool-btn {
+  width: max(36px, 5.5vmin);
+  height: max(36px, 5.5vmin);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--gold);
+  font-size: max(16px, 2.6vmin);
+  opacity: 0.55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.tool-btn:hover, .tool-btn:focus-visible { opacity: 1; }
+.tool-admin { opacity: 0.3; }
+
+/* ------------------------- Machine pas encore prête ---------------------- */
+
+.not-ready {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 0, 2, 0.88);
+  padding: 4vmin;
+}
+.not-ready-box {
+  max-width: 760px;
+  text-align: center;
+  padding: 4vmin 5vmin;
+  border: 0.5vmin solid var(--gold-2);
+  border-radius: 3vmin;
+  background: linear-gradient(160deg, #3b000c, #160004);
+  box-shadow: 0 0 5vmin rgba(255, 200, 0, 0.25);
+}
+.not-ready-icon { font-size: clamp(3rem, 14vmin, 9rem); line-height: 1; }
+.not-ready-box h2 { font-family: var(--vegas); color: var(--gold); font-size: clamp(1.5rem, 5vmin, 3rem); margin: 1vmin 0; }
+.not-ready-box p { font-size: clamp(1rem, 2.6vmin, 1.5rem); }
+.not-ready-actions { display: flex; gap: 2vmin; justify-content: center; flex-wrap: wrap; margin-top: 3vmin; }
+
+/* -------------------------------- Résultat ------------------------------- */
+
+.result-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 0, 1, 0.6);
+  padding: 3vmin;
+  cursor: pointer;
+}
+.result-overlay.is-win { background: radial-gradient(circle, rgba(255, 200, 0, 0.25), rgba(5, 0, 1, 0.75)); }
+.result-card {
+  text-align: center;
+  max-width: 92vw;
+  padding: 3.5vmin 6vmin;
+  border-radius: 4vmin;
+  border: 0.8vmin solid var(--gold);
+  background: radial-gradient(ellipse at 50% 0%, #7a0016 0%, #2a0008 70%);
+  box-shadow: 0 0 0 1vmin #3b000c, 0 0 8vmin rgba(255, 200, 0, 0.6);
+  animation: pop-in 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes pop-in {
+  from { transform: scale(0.3); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.jackpot-title {
+  font-family: var(--vegas);
+  font-weight: 900;
+  font-size: clamp(2.5rem, 14vmin, 10rem);
+  line-height: 1;
+  background: linear-gradient(180deg, #fffbe0, #ffd700 45%, #ff8c00);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0.5vmin 0 #5a0010) drop-shadow(0 0 2vmin rgba(255, 215, 0, 0.8));
+  animation: jackpot-zoom 0.5s ease-in-out infinite alternate;
+}
+@keyframes jackpot-zoom { to { transform: scale(1.07) rotate(-1.5deg); } }
+.result-symbols { display: flex; justify-content: center; gap: 2vmin; margin: 1.5vmin 0; }
+.result-symbols .sym { font-size: clamp(2.5rem, 11vmin, 8rem); }
+.result-symbols .sym-seven { font-size: clamp(3rem, 13vmin, 9rem); -webkit-text-stroke: 0.25vmin #8a5a00; }
+.result-symbols .sym-bar { font-size: clamp(1rem, 4.5vmin, 3rem); border-width: 0.5vmin; padding: 1vmin 1.5vmin; align-self: center; }
+.result-ticket { font-size: clamp(1.3rem, 5vmin, 3.5rem); font-weight: 800; color: #fff; }
+.result-label { font-size: clamp(1rem, 3.5vmin, 2.4rem); color: var(--cream); margin-top: 1vmin; text-transform: uppercase; letter-spacing: 0.15em; }
+.result-prize {
+  font-family: var(--vegas);
+  font-weight: 900;
+  font-size: clamp(1.8rem, 9vmin, 6.5rem);
+  line-height: 1.1;
+  color: var(--gold);
+  text-shadow: 0 0 2vmin rgba(255, 215, 0, 0.7), 0 0.4vmin 0 #000;
+  margin: 0.5vmin 0 1.5vmin;
+  overflow-wrap: anywhere;
+}
+.result-hint { font-size: clamp(1rem, 3.4vmin, 2.2rem); color: #fff; }
+.lose-title { font-family: var(--vegas); font-weight: 900; font-size: clamp(2rem, 10vmin, 7rem); color: #ffb3b3; text-shadow: 0 0.4vmin 0 #000; }
+.lose-text { font-size: clamp(1.1rem, 4.5vmin, 3rem); color: var(--gold); margin-top: 1.5vmin; }
+
+.result-countdown { position: absolute; left: 0; right: 0; bottom: 0; height: 1vmin; min-height: 5px; background: rgba(255, 255, 255, 0.1); }
+.result-countdown-bar { height: 100%; width: 100%; background: linear-gradient(90deg, var(--gold), var(--red)); }
+
+.confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 70; }
+
+/* ------------------------------ Portrait --------------------------------- */
+
+@media (orientation: portrait) {
+  .screen-game { --cell: calc(min(24vw, 14.5vh) * var(--fit)); }
+  .marquee { padding: 0.6vmin calc(3 * max(36px, 5.5vmin) + 1vmin); }
+  .marquee-title { font-size: calc(clamp(1.1rem, 5.5vw, 4rem) * (0.6 + var(--fit) * 0.4)); white-space: normal; }
+  .game-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-content: space-evenly;
+    gap: 2.5vh;
+    padding: 2vh 3vw;
+  }
+  .panel {
+    grid-template-columns: 1.5fr 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 2vw;
+    width: min(100%, 720px);
+    justify-self: center;
+  }
+  .keypad { grid-column: 1; grid-row: 1 / span 2; }
+  .keypad button { height: calc(clamp(44px, 7.2vh, 110px) * var(--fit)); }
+  .ticket-display { grid-column: 2; grid-row: 1; }
+  .btn-play { grid-column: 2; grid-row: 2; height: auto; min-height: 60px; font-size: clamp(1.6rem, 8vw, 4.5rem); }
+}
+
+/* Très petits écrans (téléphone) : simple garde-fou. */
+@media (max-width: 480px) and (orientation: portrait) {
+  .panel { grid-template-columns: 1fr; grid-template-rows: none; }
+  .keypad, .ticket-display, .btn-play { grid-column: auto; grid-row: auto; }
+  .btn-play { min-height: 64px; }
+}
+
+/* ================================ BOUTONS ================================= */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 215, 0, 0.45);
+  background: #3a1520;
+  color: var(--cream);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.2;
+  text-align: center;
+}
+.btn:hover:not(:disabled) { background: #4d1c2a; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(#e0203d, #a0001c); border-color: var(--gold); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: linear-gradient(#f0304d, #b00020); }
+.btn-gold { background: linear-gradient(#ffe066, #d49b00); color: #2a0008; border-color: #fff3b0; }
+.btn-gold:hover:not(:disabled) { background: linear-gradient(#fff08a, #e6ad00); }
+.btn-danger { background: #7f1d1d; border-color: #f87171; color: #fff; }
+.btn-danger:hover:not(:disabled) { background: #991b1b; }
+.btn-small { min-height: 32px; padding: 5px 10px; font-size: 13px; }
+.btn-large { font-size: clamp(1rem, 2.6vmin, 1.4rem); padding: 14px 24px; }
+.btn-icon { min-width: 44px; padding: 8px; }
+.demo-banner .btn { background: #111; color: #ffcc00; border-color: #111; }
+
+/* ============================= ADMINISTRATION ============================ */
+
+.screen-admin { max-width: 1200px; margin: 0 auto; padding: 16px 16px 60px; }
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 0 14px;
+  border-bottom: 2px solid var(--gold-2);
+}
+.admin-header h1 { margin: 0; font-family: var(--vegas); color: var(--gold); font-size: clamp(1.3rem, 3vw, 2rem); }
+.admin-mode { color: #ffcc00; font-size: 0.7em; }
+.admin-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.admin-alerts { margin-top: 12px; }
+
+.admin-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 14px 0;
+  padding-bottom: 4px;
+}
+.admin-tabs button {
+  flex: none;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--cream);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.admin-tabs button.active { background: var(--gold); color: #2a0008; border-color: var(--gold); }
+
+.card {
+  background: rgba(36, 10, 18, 0.92);
+  border: 1px solid rgba(255, 215, 0, 0.22);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.card h3 { margin: 0 0 12px; color: var(--gold); font-size: 1.15rem; }
+.card-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.card-danger { border-color: rgba(248, 113, 113, 0.6); }
+.card-danger h3 { color: var(--danger); }
+.muted { color: rgba(255, 246, 220, 0.6); font-size: 0.92em; }
+
+.badge { display: inline-block; padding: 5px 12px; border-radius: 999px; font-weight: 700; font-size: 14px; margin: 0; }
+.badge-ok { background: rgba(52, 211, 153, 0.18); color: var(--ok); border: 1px solid var(--ok); }
+.badge-warn { background: rgba(251, 191, 36, 0.15); color: var(--warn); border: 1px solid var(--warn); }
+.badge-off { background: rgba(255, 255, 255, 0.08); color: var(--cream); border: 1px solid rgba(255, 255, 255, 0.3); }
+
+.alert { padding: 10px 14px; border-radius: 10px; margin: 8px 0; line-height: 1.4; }
+.alert-danger { background: rgba(185, 28, 28, 0.25); border: 1px solid var(--danger); }
+.alert-warn { background: rgba(251, 191, 36, 0.12); border: 1px solid var(--warn); }
+.alert-ok { background: rgba(52, 211, 153, 0.12); border: 1px solid var(--ok); }
+.alert-info { background: rgba(96, 165, 250, 0.12); border: 1px solid #60a5fa; }
+.alert-demo { background: rgba(255, 204, 0, 0.15); border: 1px solid #ffcc00; }
+.alert .btn { margin-left: 8px; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.kpi { background: rgba(36, 10, 18, 0.92); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 14px; padding: 14px; text-align: center; }
+.kpi-value { font-family: var(--vegas); font-size: 2.4rem; color: var(--gold); line-height: 1.1; }
+.kpi-label { font-weight: 600; }
+
+.table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.table th, .table td { padding: 8px 10px; border-bottom: 1px solid rgba(255, 215, 0, 0.12); text-align: left; vertical-align: middle; }
+.table th { color: var(--gold); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; position: sticky; top: 0; background: #2a0c15; z-index: 1; }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.table-compact td, .table-compact th { padding: 5px 8px; }
+.table tr.row-win td { background: rgba(255, 215, 0, 0.07); }
+.table-scroll { max-height: 60vh; overflow: auto; border-radius: 8px; border: 1px solid rgba(255, 215, 0, 0.12); }
+.table-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.table-tools input { margin-left: auto; }
+.prize-cell { display: inline-flex; align-items: center; gap: 6px; }
+
+.progress { height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 99px; overflow: hidden; min-width: 80px; }
+.progress div { height: 100%; background: linear-gradient(90deg, var(--gold), var(--red)); }
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+/* Formulaires */
+.field { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; font-size: 14px; }
+.field > span { color: rgba(255, 246, 220, 0.8); font-weight: 600; }
+.field-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.field-grow { flex: 1; min-width: 180px; }
+.field-small { width: 150px; }
+.check { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 15px; }
+.check input { width: 22px; height: 22px; accent-color: var(--red); }
+input[type="text"], input[type="number"], input[type="search"], select {
+  font: inherit;
+  font-size: 16px;
+  padding: 10px 12px;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  background: #12050a;
+  color: var(--cream);
+}
+input:focus, select:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+input[type="range"] { width: 100%; max-width: 420px; accent-color: var(--gold); }
+
+.prize-list { display: flex; flex-direction: column; gap: 8px; }
+.prize-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+}
+.prize-row .field { margin: 0; }
+.prize-preview {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 10px;
+  --cell: 56px;
+}
+
+.seed-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.seed-input { flex: 1; min-width: 220px; font-family: var(--led); letter-spacing: 0.06em; }
+.draw-info { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 14px 0 0; }
+.draw-info dt { color: var(--gold); font-weight: 600; }
+.draw-info dd { margin: 0; overflow-wrap: anywhere; }
+code { font-family: var(--led); background: rgba(0, 0, 0, 0.35); padding: 2px 6px; border-radius: 6px; }
+
+.verify { margin-top: 14px; padding: 12px 16px; border-radius: 10px; }
+.verify h4 { margin: 0 0 8px; }
+.verify ul { margin: 0; padding-left: 4px; list-style: none; }
+.verify li { margin: 6px 0; }
+.verify li.ok { color: var(--ok); }
+.verify li.ko { color: var(--danger); font-weight: 700; }
+.verify-ok { background: rgba(52, 211, 153, 0.1); border: 1px solid var(--ok); }
+.verify-ko { background: rgba(185, 28, 28, 0.2); border: 1px solid var(--danger); }
+
+/* ================================ MODALES ================================= */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.75);
+}
+.modal-box {
+  width: min(520px, 100%);
+  max-height: 92vh;
+  overflow: auto;
+  padding: 20px 22px;
+  border-radius: 16px;
+  border: 2px solid var(--gold-2);
+  background: linear-gradient(160deg, #3b000c, #1a0006);
+  color: var(--cream);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  user-select: text;
+}
+.modal-wide { width: min(760px, 100%); }
+.modal-title { margin: 0 0 10px; color: var(--gold); font-family: var(--vegas); font-size: 1.4rem; }
+.modal-body p { line-height: 1.5; }
+.modal-error { color: var(--danger); font-weight: 700; min-height: 1.2em; margin: 6px 0; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 10px; }
+.confirm-input { width: 100%; text-transform: uppercase; }
+
+.pin-dots {
+  text-align: center;
+  font-size: 34px;
+  letter-spacing: 0.3em;
+  min-height: 48px;
+  padding: 6px;
+  margin: 8px 0;
+  background: #050001;
+  border-radius: 10px;
+  color: var(--gold);
+}
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pin-key {
+  height: 64px;
+  font-size: 28px;
+  font-weight: 800;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(#fffdf3, #e9dcb8);
+  color: #2a0008;
+  box-shadow: 0 4px 0 #9a7b3a;
+}
+.pin-key:active { transform: translateY(3px); box-shadow: 0 1px 0 #9a7b3a; }
+
+/* ============================= NOTIFICATIONS ============================== */
+
+.toasts {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+  width: min(560px, calc(100vw - 32px));
+}
+.toast {
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: #222;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  font-weight: 600;
+  transition: opacity 0.6s, transform 0.6s;
+  text-align: center;
+}
+.toast-success { background: #065f46; border-color: var(--ok); }
+.toast-error { background: #7f1d1d; border-color: var(--danger); }
+.toast-hide { opacity: 0; transform: translateY(10px); }
+
+/* ============================ VUE IMPRIMABLE ============================== */
+
+.screen-print { background: #f4f1ea; color: #111; min-height: 100vh; }
+body[data-screen="print"] { background: #f4f1ea; }
+.print-toolbar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: #2a0008;
+  color: var(--cream);
+  z-index: 5;
+}
+.print-page { max-width: 900px; margin: 0 auto; padding: 24px 16px 60px; font-size: 15px; }
+.print-page h1 { margin: 0; font-size: 26px; }
+.print-page h2 { margin: 4px 0 8px; font-size: 20px; }
+.print-page .muted { color: #555; }
+.print-page code { background: #e6e0d0; color: #111; }
+.print-header { border-bottom: 3px solid #111; padding-bottom: 8px; margin-bottom: 12px; }
+.print-howto { background: #fff; border: 1px solid #bbb; padding: 8px 12px; border-radius: 6px; }
+.print-prize { break-inside: avoid; page-break-inside: avoid; margin: 14px 0; border: 1px solid #999; border-radius: 6px; padding: 8px 12px; background: #fff; }
+.print-prize h3 { margin: 0 0 8px; font-size: 18px; }
+.print-tickets { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 4px 12px; }
+.print-tickets li { font-size: 18px; }
+.print-tickets em { font-size: 12px; color: #555; }
+.print-tickets .box { font-size: 20px; }
+.print-full h3 { margin-top: 20px; }
+.print-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 2px; font-size: 12px; }
+.pg-cell { border: 1px solid #ccc; padding: 2px 4px; background: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pg-cell.pg-win { background: #fff3c4; font-weight: 700; }
+.print-page .sym-mini.sym-bar { color: #fff; }
+
+@media print {
+  @page { margin: 12mm; }
+  body, body[data-screen="print"] { background: #fff !important; height: auto; overflow: visible; display: block; }
+  .no-print, .demo-banner, .storage-warning, .toasts, .modal-overlay, .confetti { display: none !important; }
+  .screen-print { background: #fff; min-height: 0; }
+  .print-page { max-width: none; padding: 0; }
+  .print-prize, .pg-cell, .print-howto { background: #fff; }
+  .pg-cell.pg-win { background: #eee; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* Accessibilité : réduire les animations si demandé par le système. */
+@media (prefers-reduced-motion: reduce) {
+  .bulb, .btn-play, .ticket-value.empty, .demo-label { animation: none !important; }
+}
+
+</style>
+</head>
+<body data-screen="game">
+
+  <!-- Bannières globales -->
+  <div class="demo-banner" id="demo-banner">
+    <span class="demo-label">MODE DÉMO</span>
+    <span class="demo-text">Données fictives — la vraie soirée n’est pas touchée</span>
+    <button type="button" class="btn btn-small" id="demo-reset">↺ Réinitialiser la démo</button>
+    <button type="button" class="btn btn-small" id="demo-quit">Quitter la démo</button>
+  </div>
+  <div class="storage-warning" id="storage-warning">
+    ⚠ Sauvegarde automatique indisponible (stockage du navigateur bloqué ou plein).
+    Les données seront perdues à la fermeture : faites des sauvegardes sur fichier en administration !
+  </div>
+
+  <!-- ============================ ÉCRAN DE JEU ============================ -->
+  <section id="screen-game" class="screen screen-game">
+    <header class="marquee">
+      <div class="bulbs bulbs-row" data-bulbs="18"></div>
+      <h1 class="marquee-title" id="game-title">Grande Tombola du Nouvel An</h1>
+      <div class="bulbs bulbs-row" data-bulbs="18"></div>
+    </header>
+
+    <main class="game-main">
+      <div class="machine">
+        <div class="machine-frame" id="machine-frame">
+          <div class="bulbs bulbs-edge bulbs-top" data-bulbs="12"></div>
+          <div class="bulbs bulbs-edge bulbs-bottom" data-bulbs="12"></div>
+          <div class="bulbs bulbs-edge bulbs-left" data-bulbs="5"></div>
+          <div class="bulbs bulbs-edge bulbs-right" data-bulbs="5"></div>
+          <div class="reels" id="reels">
+            <div class="reel"><div class="reel-inner"><div class="strip"></div></div></div>
+            <div class="reel"><div class="reel-inner"><div class="strip"></div></div></div>
+            <div class="reel"><div class="reel-inner"><div class="strip"></div></div></div>
+            <div class="payline" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="game-message" id="game-message" aria-live="polite">Entrez votre numéro de ticket</div>
+      </div>
+
+      <div class="panel">
+        <div class="ticket-display" id="ticket-display">
+          <span class="ticket-label">TICKET N°</span>
+          <span class="ticket-value" id="ticket-value"></span>
+        </div>
+        <div class="keypad" id="keypad">
+          <button type="button" data-key="7">7</button>
+          <button type="button" data-key="8">8</button>
+          <button type="button" data-key="9">9</button>
+          <button type="button" data-key="4">4</button>
+          <button type="button" data-key="5">5</button>
+          <button type="button" data-key="6">6</button>
+          <button type="button" data-key="1">1</button>
+          <button type="button" data-key="2">2</button>
+          <button type="button" data-key="3">3</button>
+          <button type="button" data-key="clear" class="key-alt" aria-label="Effacer tout">C</button>
+          <button type="button" data-key="0">0</button>
+          <button type="button" data-key="back" class="key-alt" aria-label="Effacer le dernier chiffre">⌫</button>
+        </div>
+        <button type="button" class="btn-play" id="btn-play">JOUER</button>
+      </div>
+    </main>
+
+    <div class="game-toolbar">
+      <button type="button" class="tool-btn" id="btn-mute" title="Son">🔊</button>
+      <button type="button" class="tool-btn" id="btn-fullscreen" title="Plein écran">⛶</button>
+      <button type="button" class="tool-btn tool-admin" id="btn-admin" title="Administration">⚙</button>
+    </div>
+
+    <!-- Machine pas encore prête (tirage absent ou non verrouillé) -->
+    <div class="not-ready" id="not-ready" hidden>
+      <div class="not-ready-box">
+        <div class="not-ready-icon">🎰</div>
+        <h2>La machine se prépare…</h2>
+        <p id="not-ready-text">Aucun tirage n’a encore été configuré.</p>
+        <div class="not-ready-actions">
+          <button type="button" class="btn btn-primary btn-large" id="not-ready-admin">⚙ Configurer la soirée</button>
+          <button type="button" class="btn btn-large" id="not-ready-demo">🎲 Découvrir le mode démo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Résultat -->
+    <div class="result-overlay" id="result-overlay" hidden>
+      <div class="result-card" id="result-card"></div>
+      <div class="result-countdown"><div class="result-countdown-bar" id="result-countdown-bar"></div></div>
+    </div>
+    <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+  </section>
+
+  <!-- ========================= ADMINISTRATION ============================= -->
+  <section id="screen-admin" class="screen screen-admin" hidden>
+    <header class="admin-header">
+      <h1>⚙ Administration <span class="admin-mode" id="admin-mode"></span></h1>
+      <div class="admin-header-actions">
+        <button type="button" class="btn btn-primary" id="admin-backup">💾 Sauvegarder maintenant</button>
+        <button type="button" class="btn" id="admin-back">🎰 Retour au jeu</button>
+      </div>
+    </header>
+    <div class="admin-alerts" id="admin-alerts"></div>
+    <nav class="admin-tabs" id="admin-tabs" role="tablist">
+      <button type="button" role="tab" data-tab="dashboard">📊 Tableau de bord</button>
+      <button type="button" role="tab" data-tab="config">🎁 Lots &amp; tickets</button>
+      <button type="button" role="tab" data-tab="draw">🎲 Tirage</button>
+      <button type="button" role="tab" data-tab="log">📜 Journal</button>
+      <button type="button" role="tab" data-tab="settings">🔧 Réglages &amp; sécurité</button>
+    </nav>
+    <div class="admin-content" id="admin-content"></div>
+  </section>
+
+  <!-- ===================== VUE IMPRIMABLE / PLAN B ======================== -->
+  <section id="screen-print" class="screen screen-print" hidden>
+    <div class="print-toolbar no-print">
+      <button type="button" class="btn btn-primary" id="print-go">🖨 Imprimer</button>
+      <label><input type="checkbox" id="print-full"> Ajouter le tableau complet des tickets</label>
+      <button type="button" class="btn" id="print-back">← Retour à l’administration</button>
+    </div>
+    <div class="print-page" id="print-page"></div>
+  </section>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script>
+/* ---- js/draw.js ---- */
+/*
+ * draw.js — Logique pure du tirage (aucune dépendance au navigateur).
+ *
+ * Ce fichier est utilisé :
+ *   - dans le navigateur (exposé sous `window.Draw`) ;
+ *   - dans Node pour les tests automatisés (`module.exports`).
+ *
+ * Principe : le résultat de chaque ticket est fixé à l'avance par un
+ * générateur pseudo-aléatoire à graine (seed). Même seed + même
+ * configuration = exactement le même tirage. Les symboles affichés par
+ * les rouleaux sont eux aussi dérivés du seed et du numéro de ticket,
+ * ce qui rend l'affichage reproductible et vérifiable.
+ */
+(function (root, factory) {
+  'use strict';
+  var api = factory();
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  } else {
+    root.Draw = api;
+  }
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------ */
+  /* Symboles disponibles                                                 */
+  /* ------------------------------------------------------------------ */
+
+  // type "text" : rendu stylé en CSS (pas d'emoji adapté) ; "emoji" sinon.
+  var SYMBOLS = [
+    { id: 'seven', name: '7', type: 'text', char: '7' },
+    { id: 'bar', name: 'BAR', type: 'text', char: 'BAR' },
+    { id: 'cherry', name: 'Cerise', type: 'emoji', char: '🍒' },
+    { id: 'bell', name: 'Cloche', type: 'emoji', char: '🔔' },
+    { id: 'diamond', name: 'Diamant', type: 'emoji', char: '💎' },
+    { id: 'clover', name: 'Trèfle', type: 'emoji', char: '🍀' },
+    { id: 'crown', name: 'Couronne', type: 'emoji', char: '👑' },
+    { id: 'star', name: 'Étoile', type: 'emoji', char: '⭐' },
+    { id: 'lemon', name: 'Citron', type: 'emoji', char: '🍋' },
+    { id: 'grapes', name: 'Raisin', type: 'emoji', char: '🍇' },
+    { id: 'watermelon', name: 'Pastèque', type: 'emoji', char: '🍉' },
+    { id: 'moneybag', name: 'Sac d’or', type: 'emoji', char: '💰' },
+    { id: 'heart', name: 'Cœur', type: 'emoji', char: '❤️' },
+    { id: 'champagne', name: 'Champagne', type: 'emoji', char: '🍾' },
+    { id: 'gift', name: 'Cadeau', type: 'emoji', char: '🎁' },
+    { id: 'dice', name: 'Dés', type: 'emoji', char: '🎲' }
+  ];
+
+  var SYMBOL_IDS = SYMBOLS.map(function (s) { return s.id; });
+
+  // Limites raisonnables (l'affichage du tableau complet reste fluide).
+  var MAX_TICKETS = 10000;
+  var MAX_NAME_LENGTH = 60;
+
+  function getSymbol(id) {
+    for (var i = 0; i < SYMBOLS.length; i++) {
+      if (SYMBOLS[i].id === id) return SYMBOLS[i];
+    }
+    return null;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Générateur pseudo-aléatoire à graine                                 */
+  /* ------------------------------------------------------------------ */
+
+  // cyrb128 : transforme une chaîne en 4 entiers 32 bits (hachage rapide).
+  function cyrb128(str) {
+    var h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+    for (var i = 0, k; i < str.length; i++) {
+      k = str.charCodeAt(i);
+      h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+      h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+      h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+      h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+    }
+    h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+    h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+    h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+    h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+    h1 ^= (h2 ^ h3 ^ h4); h2 ^= h1; h3 ^= h1; h4 ^= h1;
+    return [h1 >>> 0, h2 >>> 0, h3 >>> 0, h4 >>> 0];
+  }
+
+  // sfc32 : générateur rapide et de bonne qualité, nombres dans [0, 1[.
+  function sfc32(a, b, c, d) {
+    return function () {
+      a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+      var t = (a + b) | 0;
+      a = b ^ (b >>> 9);
+      b = (c + (c << 3)) | 0;
+      c = (c << 21) | (c >>> 11);
+      d = (d + 1) | 0;
+      t = (t + d) | 0;
+      c = (c + t) | 0;
+      return (t >>> 0) / 4294967296;
+    };
+  }
+
+  function createRng(seed) {
+    var s = cyrb128(String(seed));
+    var rng = sfc32(s[0], s[1], s[2], s[3]);
+    // On « chauffe » le générateur pour bien mélanger l'état initial.
+    for (var i = 0; i < 15; i++) rng();
+    return rng;
+  }
+
+  // Entier aléatoire dans [0, n[.
+  function randInt(rng, n) {
+    return Math.floor(rng() * n);
+  }
+
+  // Petit hachage texte (empreinte du PIN, empreinte d'un tirage).
+  function hashString(str) {
+    var h = cyrb128(String(str));
+    return h.map(function (x) { return ('00000000' + x.toString(16)).slice(-8); }).join('');
+  }
+
+  // Seed lisible, ex. « CASINO-7KQ4-M2XP » (sans caractères ambigus).
+  function randomSeed() {
+    var alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var values = new Uint32Array(8);
+    var cryptoObj = (typeof globalThis !== 'undefined' && globalThis.crypto) || null;
+    if (cryptoObj && cryptoObj.getRandomValues) {
+      cryptoObj.getRandomValues(values);
+    } else {
+      for (var i = 0; i < values.length; i++) values[i] = Math.floor(Math.random() * 4294967296);
+    }
+    var out = '';
+    for (var j = 0; j < values.length; j++) {
+      if (j === 4) out += '-';
+      out += alphabet[values[j] % alphabet.length];
+    }
+    return 'CASINO-' + out;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Validation de la configuration                                       */
+  /* ------------------------------------------------------------------ */
+
+  function isPositiveInt(v) {
+    return typeof v === 'number' && isFinite(v) && Math.floor(v) === v && v >= 1;
+  }
+
+  /**
+   * Vérifie une configuration { ticketCount, prizes: [{id, name, quantity, symbol}] }.
+   * Retourne { ok, errors: [texte], warnings: [texte] }.
+   */
+  function validateConfig(config) {
+    var errors = [];
+    var warnings = [];
+    if (!config || typeof config !== 'object') {
+      return { ok: false, errors: ['Configuration absente.'], warnings: warnings };
+    }
+    var n = config.ticketCount;
+    if (!isPositiveInt(n)) {
+      errors.push('Le nombre de tickets doit être un nombre entier supérieur ou égal à 1.');
+    } else if (n > MAX_TICKETS) {
+      errors.push('Le nombre de tickets est limité à ' + MAX_TICKETS + '.');
+    }
+
+    var prizes = Array.isArray(config.prizes) ? config.prizes : [];
+    if (!Array.isArray(config.prizes)) errors.push('La liste des lots est invalide.');
+    if (prizes.length === 0) warnings.push('Aucun lot défini : tous les tickets seront perdants.');
+    if (prizes.length > SYMBOLS.length) {
+      errors.push('Au maximum ' + SYMBOLS.length + ' lots (un symbole unique par lot).');
+    }
+
+    var usedSymbols = {};
+    var usedIds = {};
+    var total = 0;
+    prizes.forEach(function (p, i) {
+      var label = 'Lot n°' + (i + 1) + (p && p.name ? ' (« ' + String(p.name).trim() + ' »)' : '');
+      if (!p || typeof p !== 'object') {
+        errors.push(label + ' : données invalides.');
+        return;
+      }
+      if (!p.id || usedIds[p.id]) errors.push(label + ' : identifiant interne invalide ou en double.');
+      usedIds[p.id] = true;
+
+      var name = typeof p.name === 'string' ? p.name.trim() : '';
+      if (!name) errors.push(label + ' : le nom du lot est obligatoire.');
+      else if (name.length > MAX_NAME_LENGTH) errors.push(label + ' : nom trop long (' + MAX_NAME_LENGTH + ' caractères max).');
+
+      if (!isPositiveInt(p.quantity)) {
+        errors.push(label + ' : la quantité doit être un nombre entier supérieur ou égal à 1.');
+      } else {
+        total += p.quantity;
+      }
+
+      if (!getSymbol(p.symbol)) {
+        errors.push(label + ' : choisissez un symbole.');
+      } else if (usedSymbols[p.symbol]) {
+        errors.push(label + ' : le symbole « ' + getSymbol(p.symbol).name + ' » est déjà utilisé par « ' + usedSymbols[p.symbol] + ' ».');
+      } else {
+        usedSymbols[p.symbol] = name || ('lot n°' + (i + 1));
+      }
+    });
+
+    if (isPositiveInt(n) && total > n) {
+      errors.push('Il y a ' + total + ' lots à gagner pour seulement ' + n + ' tickets : le total des quantités doit être inférieur ou égal au nombre de tickets.');
+    }
+    if (isPositiveInt(n) && total === n && n > 0 && prizes.length > 0) {
+      warnings.push('Tous les tickets sont gagnants.');
+    }
+    return { ok: errors.length === 0, errors: errors, warnings: warnings, totalPrizes: total };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Tirage                                                               */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Génère le tirage : mélange de Fisher-Yates des tickets 1..N avec le
+   * générateur à graine, puis attribution des lots dans l'ordre de la liste.
+   * Un ticket ne peut recevoir qu'un seul lot (chaque position du mélange
+   * n'est utilisée qu'une fois).
+   *
+   * Retourne { seed, ticketCount, assignments: { "12": "lot-1", ... }, fingerprint }.
+   */
+  function generateDraw(config, seed) {
+    var check = validateConfig(config);
+    if (!check.ok) {
+      var err = new Error(check.errors.join('\n'));
+      err.validation = check;
+      throw err;
+    }
+    seed = String(seed == null ? '' : seed).trim();
+    if (!seed) throw new Error('Le seed ne peut pas être vide.');
+
+    var n = config.ticketCount;
+    var rng = createRng('tirage|' + seed);
+    var tickets = new Array(n);
+    for (var i = 0; i < n; i++) tickets[i] = i + 1;
+    for (var j = n - 1; j > 0; j--) {
+      var k = randInt(rng, j + 1);
+      var tmp = tickets[j]; tickets[j] = tickets[k]; tickets[k] = tmp;
+    }
+
+    var assignments = {};
+    var pos = 0;
+    config.prizes.forEach(function (p) {
+      for (var q = 0; q < p.quantity; q++) {
+        assignments[String(tickets[pos++])] = p.id;
+      }
+    });
+
+    var draw = { seed: seed, ticketCount: n, assignments: assignments };
+    draw.fingerprint = drawFingerprint(config, draw);
+    return draw;
+  }
+
+  // Empreinte courte d'un tirage (pour comparer rapidement deux copies).
+  function drawFingerprint(config, draw) {
+    var keys = Object.keys(draw.assignments).map(Number).sort(function (a, b) { return a - b; });
+    var parts = keys.map(function (t) {
+      var p = findPrize(config, draw.assignments[String(t)]);
+      return t + ':' + (p ? p.name + '/' + p.symbol : '?');
+    });
+    return hashString(draw.seed + '#' + draw.ticketCount + '#' + parts.join(',')).slice(0, 12).toUpperCase();
+  }
+
+  function findPrize(config, prizeId) {
+    if (!config || !config.prizes || prizeId == null) return null;
+    for (var i = 0; i < config.prizes.length; i++) {
+      if (config.prizes[i].id === prizeId) return config.prizes[i];
+    }
+    return null;
+  }
+
+  // Lot prévu pour un ticket (objet lot) ou null si perdant.
+  function prizeForTicket(config, draw, ticket) {
+    if (!draw || !draw.assignments) return null;
+    return findPrize(config, draw.assignments[String(ticket)]);
+  }
+
+  // Liste des gagnants par lot : [{ prize, tickets: [..triés..] }].
+  function winnersByPrize(config, draw) {
+    var map = {};
+    (config.prizes || []).forEach(function (p) { map[p.id] = []; });
+    if (draw && draw.assignments) {
+      Object.keys(draw.assignments).forEach(function (t) {
+        var id = draw.assignments[t];
+        if (map[id]) map[id].push(Number(t));
+      });
+    }
+    return (config.prizes || []).map(function (p) {
+      return { prize: p, tickets: map[p.id].sort(function (a, b) { return a - b; }) };
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Symboles affichés par les rouleaux                                   */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Symboles finaux des 3 rouleaux pour un ticket.
+   *  - gagnant : 3 fois le symbole du lot ;
+   *  - perdant « presque gagné » : 2 symboles identiques (rouleaux 1 et 2),
+   *    le 3e différent ;
+   *  - perdant normal : 3 symboles tous différents.
+   * Un perdant n'obtient JAMAIS trois symboles identiques.
+   *
+   * options : { nearMissEnabled: bool, nearMissPercent: 0..100 }
+   * Retourne { symbols: [id, id, id], win: bool, nearMiss: bool }.
+   */
+  function reelSymbols(config, seed, ticket, prizeId, options) {
+    var prize = findPrize(config, prizeId);
+    if (prize) {
+      return { symbols: [prize.symbol, prize.symbol, prize.symbol], win: true, nearMiss: false };
+    }
+    options = options || {};
+    var rng = createRng('rouleaux|' + seed + '|' + ticket);
+    var percent = Math.max(0, Math.min(100, Number(options.nearMissPercent) || 0));
+    var nearMiss = !!options.nearMissEnabled && rng() * 100 < percent;
+    var pool = SYMBOL_IDS.slice();
+
+    if (nearMiss) {
+      // Pour le suspense, la paire utilise de préférence le symbole d'un lot.
+      var prizeSymbols = (config.prizes || []).map(function (p) { return p.symbol; })
+        .filter(function (s) { return SYMBOL_IDS.indexOf(s) !== -1; });
+      var pairSource = prizeSymbols.length ? prizeSymbols : pool;
+      var pair = pairSource[randInt(rng, pairSource.length)];
+      var others = pool.filter(function (s) { return s !== pair; });
+      var other = others[randInt(rng, others.length)];
+      return { symbols: [pair, pair, other], win: false, nearMiss: true };
+    }
+
+    // Trois symboles distincts (tirage sans remise).
+    var picked = [];
+    for (var i = 0; i < 3; i++) {
+      var idx = randInt(rng, pool.length);
+      picked.push(pool[idx]);
+      pool.splice(idx, 1);
+    }
+    return { symbols: picked, win: false, nearMiss: false };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Test de cohérence                                                    */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Vérifie un tirage. plays (facultatif) : { "12": { prizeId } }.
+   * Retourne { ok, checks: [{ label, ok, detail }] }.
+   */
+  function verifyDraw(config, draw, plays, options) {
+    var checks = [];
+    function add(label, ok, detail) { checks.push({ label: label, ok: !!ok, detail: detail || '' }); }
+
+    var v = validateConfig(config);
+    add('Configuration valide', v.ok, v.ok ? '' : v.errors.join(' '));
+    if (!draw || !draw.assignments) {
+      add('Tirage présent', false, 'Aucun tirage généré.');
+      return { ok: false, checks: checks };
+    }
+    add('Nombre de tickets identique à la configuration', draw.ticketCount === config.ticketCount,
+      'tirage : ' + draw.ticketCount + ', configuration : ' + config.ticketCount);
+
+    // 1. Chaque lot a le bon nombre de gagnants.
+    var counts = {};
+    var unknown = [];
+    var outOfRange = [];
+    Object.keys(draw.assignments).forEach(function (t) {
+      var id = draw.assignments[t];
+      var num = Number(t);
+      if (!(num >= 1 && num <= config.ticketCount && Math.floor(num) === num)) outOfRange.push(t);
+      if (!findPrize(config, id)) unknown.push(t);
+      counts[id] = (counts[id] || 0) + 1;
+    });
+    var badCounts = (config.prizes || []).filter(function (p) { return (counts[p.id] || 0) !== p.quantity; })
+      .map(function (p) { return p.name + ' : ' + (counts[p.id] || 0) + '/' + p.quantity; });
+    add('Chaque lot a le bon nombre de gagnants', badCounts.length === 0,
+      badCounts.length ? badCounts.join(' ; ') : (config.prizes || []).map(function (p) { return p.name + ' : ' + p.quantity; }).join(' ; '));
+    add('Tous les numéros gagnants existent (1 à ' + config.ticketCount + ')', outOfRange.length === 0 && unknown.length === 0,
+      outOfRange.length || unknown.length ? 'Problème : ' + outOfRange.concat(unknown).join(', ') : '');
+
+    // 2. Aucun ticket n'a deux lots : chaque ticket n'apparaît qu'une fois
+    //    et le nombre de gagnants = total des quantités.
+    var total = (config.prizes || []).reduce(function (s, p) { return s + p.quantity; }, 0);
+    var winnersCount = Object.keys(draw.assignments).length;
+    add('Aucun ticket ne gagne deux lots', winnersCount === total,
+      winnersCount + ' tickets gagnants pour ' + total + ' lots');
+
+    // 3. Le tirage régénéré avec le seed est identique.
+    var same = false;
+    var regenDetail = '';
+    try {
+      var regen = generateDraw(config, draw.seed);
+      var a = Object.keys(regen.assignments);
+      same = a.length === winnersCount && a.every(function (t) { return regen.assignments[t] === draw.assignments[t]; });
+      regenDetail = 'seed « ' + draw.seed + ' »' + (same ? ' → résultat identique' : ' → résultat DIFFÉRENT');
+    } catch (e) {
+      regenDetail = e.message;
+    }
+    add('Le seed redonne exactement le même tirage', same, regenDetail);
+
+    // 4. Les rouleaux affichent toujours le résultat prévu.
+    var reelErrors = [];
+    for (var t = 1; t <= config.ticketCount; t++) {
+      var pid = draw.assignments[String(t)];
+      var r = reelSymbols(config, draw.seed, t, pid, options);
+      var p = findPrize(config, pid);
+      var triple = r.symbols[0] === r.symbols[1] && r.symbols[1] === r.symbols[2];
+      if (p && !(triple && r.symbols[0] === p.symbol)) reelErrors.push(t);
+      if (!p && triple) reelErrors.push(t);
+      if (reelErrors.length > 10) break;
+    }
+    add('Les rouleaux affichent le résultat prévu (gagnant = 3 symboles du lot, perdant = jamais 3 identiques)',
+      reelErrors.length === 0, reelErrors.length ? 'Tickets en erreur : ' + reelErrors.join(', ') : 'Vérifié pour les ' + config.ticketCount + ' tickets');
+
+    // 5. Les parties déjà jouées correspondent au tirage.
+    if (plays) {
+      var mismatch = [];
+      Object.keys(plays).forEach(function (t) {
+        var expected = draw.assignments[t] || null;
+        if ((plays[t].prizeId || null) !== expected) mismatch.push(t);
+      });
+      add('Les parties jouées correspondent au tirage', mismatch.length === 0,
+        mismatch.length ? 'Tickets incohérents : ' + mismatch.join(', ') : Object.keys(plays).length + ' partie(s) vérifiée(s)');
+    }
+
+    return { ok: checks.every(function (c) { return c.ok; }), checks: checks };
+  }
+
+  return {
+    SYMBOLS: SYMBOLS,
+    SYMBOL_IDS: SYMBOL_IDS,
+    MAX_TICKETS: MAX_TICKETS,
+    getSymbol: getSymbol,
+    createRng: createRng,
+    hashString: hashString,
+    randomSeed: randomSeed,
+    validateConfig: validateConfig,
+    generateDraw: generateDraw,
+    drawFingerprint: drawFingerprint,
+    findPrize: findPrize,
+    prizeForTicket: prizeForTicket,
+    winnersByPrize: winnersByPrize,
+    reelSymbols: reelSymbols,
+    verifyDraw: verifyDraw
+  };
+});
+
+</script>
+  <script>
+/* ---- js/storage.js ---- */
+/*
+ * storage.js — Sauvegarde de l'état dans localStorage + fichiers.
+ *
+ * Deux espaces de stockage strictement séparés :
+ *   - « real » : la vraie soirée ;
+ *   - « demo » : le mode démonstration (ne touche jamais aux données réelles).
+ * Si localStorage est indisponible (navigation privée, réglage bloqué…),
+ * on bascule sur une mémoire temporaire et l'interface affiche un avertissement.
+ */
+(function () {
+  'use strict';
+
+  var PREFIX = 'tombolaCasino.';
+  var KEYS = {
+    real: PREFIX + 'soiree.v1',
+    demo: PREFIX + 'demo.v1',
+    mode: PREFIX + 'mode',
+    prefs: PREFIX + 'prefs'
+  };
+
+  var memory = {};
+  var available = (function () {
+    try {
+      var k = PREFIX + '__test__';
+      window.localStorage.setItem(k, '1');
+      window.localStorage.removeItem(k);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  })();
+  var lastError = null;
+
+  function getRaw(key) {
+    if (!available) return memory[key] == null ? null : memory[key];
+    try {
+      return window.localStorage.getItem(key);
+    } catch (e) {
+      lastError = e;
+      return memory[key] == null ? null : memory[key];
+    }
+  }
+
+  // Retourne true si l'écriture a réussi dans localStorage.
+  function setRaw(key, value) {
+    memory[key] = value;
+    if (!available) return false;
+    try {
+      window.localStorage.setItem(key, value);
+      lastError = null;
+      return true;
+    } catch (e) {
+      // Quota dépassé ou stockage bloqué en cours de route.
+      lastError = e;
+      return false;
+    }
+  }
+
+  function removeRaw(key) {
+    delete memory[key];
+    if (!available) return;
+    try { window.localStorage.removeItem(key); } catch (e) { lastError = e; }
+  }
+
+  function readJson(key) {
+    var raw = getRaw(key);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      lastError = e;
+      return null;
+    }
+  }
+
+  /* --------------------------- Fichiers -------------------------------- */
+
+  // Déclenche le téléchargement d'un fichier texte.
+  function download(filename, content, mime) {
+    var blob = new Blob([content], { type: (mime || 'text/plain') + ';charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 1000);
+  }
+
+  // Ouvre le sélecteur de fichier et retourne une promesse avec le texte lu.
+  function pickTextFile(accept) {
+    return new Promise(function (resolve, reject) {
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.accept = accept || '.json,application/json';
+      input.style.display = 'none';
+      input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        input.remove();
+        if (!file) { reject(new Error('Aucun fichier choisi.')); return; }
+        var reader = new FileReader();
+        reader.onload = function () { resolve({ name: file.name, text: String(reader.result) }); };
+        reader.onerror = function () { reject(new Error('Lecture du fichier impossible.')); };
+        reader.readAsText(file, 'utf-8');
+      });
+      document.body.appendChild(input);
+      input.click();
+    });
+  }
+
+  // Horodatage pour les noms de fichiers : 2026-12-31_23h15
+  function fileStamp(date) {
+    var d = date || new Date();
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '_' + p(d.getHours()) + 'h' + p(d.getMinutes());
+  }
+
+  window.Store = {
+    KEYS: KEYS,
+    isAvailable: function () { return available; },
+    lastError: function () { return lastError; },
+    loadState: function (mode) { return readJson(KEYS[mode]); },
+    saveState: function (mode, state) { return setRaw(KEYS[mode], JSON.stringify(state)); },
+    clearState: function (mode) { removeRaw(KEYS[mode]); },
+    getMode: function () { return getRaw(KEYS.mode) === 'demo' ? 'demo' : 'real'; },
+    setMode: function (mode) { setRaw(KEYS.mode, mode); },
+    loadPrefs: function () { return readJson(KEYS.prefs) || {}; },
+    savePrefs: function (prefs) { setRaw(KEYS.prefs, JSON.stringify(prefs)); },
+    download: download,
+    pickTextFile: pickTextFile,
+    fileStamp: fileStamp
+  };
+})();
+
+</script>
+  <script>
+/* ---- js/audio.js ---- */
+/*
+ * audio.js — Sons générés avec la Web Audio API (aucun fichier externe).
+ *
+ * Le contexte audio n'est créé qu'au premier geste de l'utilisateur
+ * (exigence des navigateurs). Volume global + mode muet.
+ */
+(function () {
+  'use strict';
+
+  var ctx = null;
+  var master = null;
+  var volume = 0.7;
+  var muted = false;
+  var lastTick = 0;
+  var noiseBuffer = null;
+
+  function ensure() {
+    if (!ctx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try {
+        ctx = new AC();
+      } catch (e) {
+        return null;
+      }
+      master = ctx.createGain();
+      master.connect(ctx.destination);
+      applyVolume();
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  function applyVolume() {
+    if (master) master.gain.setValueAtTime(muted ? 0 : volume, ctx.currentTime);
+  }
+
+  // Oscillateur avec enveloppe simple (attaque courte, décroissance exponentielle).
+  function tone(opts) {
+    var c = ensure();
+    if (!c || muted || volume === 0) return;
+    var t0 = c.currentTime + (opts.delay || 0);
+    var dur = opts.duration || 0.2;
+    var osc = c.createOscillator();
+    var gain = c.createGain();
+    osc.type = opts.type || 'sine';
+    osc.frequency.setValueAtTime(opts.freq, t0);
+    if (opts.freqEnd) osc.frequency.exponentialRampToValueAtTime(opts.freqEnd, t0 + dur);
+    if (opts.vibrato) {
+      var lfo = c.createOscillator();
+      var lfoGain = c.createGain();
+      lfo.frequency.value = opts.vibrato;
+      lfoGain.gain.value = opts.freq * 0.03;
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+      lfo.start(t0);
+      lfo.stop(t0 + dur);
+    }
+    var peak = opts.gain == null ? 0.3 : opts.gain;
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(peak, t0 + (opts.attack || 0.01));
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.05);
+  }
+
+  // Bruit blanc filtré (claquement, souffle).
+  function noise(opts) {
+    var c = ensure();
+    if (!c || muted || volume === 0) return;
+    if (!noiseBuffer) {
+      noiseBuffer = c.createBuffer(1, c.sampleRate * 1, c.sampleRate);
+      var data = noiseBuffer.getChannelData(0);
+      for (var i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    }
+    var t0 = c.currentTime + (opts.delay || 0);
+    var dur = opts.duration || 0.1;
+    var src = c.createBufferSource();
+    src.buffer = noiseBuffer;
+    var filter = c.createBiquadFilter();
+    filter.type = opts.filter || 'bandpass';
+    filter.frequency.setValueAtTime(opts.freq || 1000, t0);
+    if (opts.freqEnd) filter.frequency.exponentialRampToValueAtTime(opts.freqEnd, t0 + dur);
+    var gain = c.createGain();
+    gain.gain.setValueAtTime(opts.gain || 0.2, t0);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(master);
+    src.start(t0);
+    src.stop(t0 + dur + 0.05);
+  }
+
+  var Sound = {
+    // À appeler sur un geste utilisateur pour débloquer l'audio.
+    unlock: function () { ensure(); },
+
+    setVolume: function (v) {
+      volume = Math.max(0, Math.min(1, Number(v)));
+      if (ctx) applyVolume();
+    },
+    getVolume: function () { return volume; },
+    setMuted: function (m) {
+      muted = !!m;
+      if (ctx) applyVolume();
+    },
+    isMuted: function () { return muted; },
+
+    key: function () {
+      tone({ freq: 880, type: 'square', duration: 0.06, gain: 0.08 });
+    },
+
+    error: function () {
+      tone({ freq: 160, type: 'sawtooth', duration: 0.18, gain: 0.15 });
+      tone({ freq: 120, type: 'sawtooth', duration: 0.25, gain: 0.15, delay: 0.2 });
+    },
+
+    // Levier / départ des rouleaux.
+    spinStart: function () {
+      noise({ freq: 400, freqEnd: 3000, duration: 0.35, gain: 0.25 });
+      tone({ freq: 220, freqEnd: 660, type: 'triangle', duration: 0.3, gain: 0.15 });
+    },
+
+    // Cliquetis pendant la rotation (limité pour éviter la saturation).
+    tick: function () {
+      var now = performance.now();
+      if (now - lastTick < 55) return;
+      lastTick = now;
+      tone({ freq: 1500 + Math.random() * 300, type: 'square', duration: 0.025, gain: 0.04 });
+    },
+
+    // Arrêt d'un rouleau (« clonk »).
+    reelStop: function (index) {
+      tone({ freq: 180 - index * 20, freqEnd: 60, type: 'triangle', duration: 0.18, gain: 0.45 });
+      noise({ freq: 2500, duration: 0.05, gain: 0.25, filter: 'highpass' });
+    },
+
+    // Tension avant l'arrêt du dernier rouleau.
+    suspense: function () {
+      tone({ freq: 300, freqEnd: 900, type: 'sine', duration: 1.2, gain: 0.08, vibrato: 7 });
+    },
+
+    win: function () {
+      var notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5, 1318.5];
+      notes.forEach(function (f, i) {
+        tone({ freq: f, type: 'square', duration: 0.18, gain: 0.12, delay: i * 0.12 });
+        tone({ freq: f / 2, type: 'triangle', duration: 0.2, gain: 0.15, delay: i * 0.12 });
+      });
+      tone({ freq: 1046.5, type: 'square', duration: 0.9, gain: 0.12, delay: notes.length * 0.12, vibrato: 6 });
+      // Pluie de pièces.
+      for (var i = 0; i < 24; i++) {
+        tone({ freq: 2000 + Math.random() * 1500, type: 'sine', duration: 0.12, gain: 0.06, delay: 1.0 + i * 0.09 });
+      }
+    },
+
+    lose: function () {
+      tone({ freq: 392, type: 'triangle', duration: 0.35, gain: 0.2 });
+      tone({ freq: 370, type: 'triangle', duration: 0.35, gain: 0.2, delay: 0.38 });
+      tone({ freq: 349, type: 'triangle', duration: 0.35, gain: 0.2, delay: 0.76 });
+      tone({ freq: 330, freqEnd: 300, type: 'triangle', duration: 1.0, gain: 0.2, delay: 1.14, vibrato: 5 });
+    }
+  };
+
+  window.Sound = Sound;
+})();
+
+</script>
+  <script>
+/* ---- js/ui.js ---- */
+/*
+ * ui.js — Petits outils d'interface : fenêtres modales (confirmation,
+ * saisie, code PIN avec pavé tactile), notifications, échappement HTML.
+ * Les fenêtres natives (alert/confirm) sont évitées : elles font sortir
+ * du plein écran et sont peu lisibles sur tablette.
+ */
+(function () {
+  'use strict';
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Raccourci de création d'élément : el('div', {class: 'x'}, 'texte')
+  function el(tag, attrs, html) {
+    var node = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === 'class') node.className = attrs[k];
+        else node.setAttribute(k, attrs[k]);
+      });
+    }
+    if (html != null) node.innerHTML = html;
+    return node;
+  }
+
+  function formatTime(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
+
+  function formatDateTime(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + formatTime(iso);
+  }
+
+  /* ----------------------------- Modales -------------------------------- */
+
+  var openCount = 0;
+
+  /**
+   * Ouvre une modale. options :
+   *  title, body (HTML), buttons: [{ label, value, kind: 'primary'|'danger'|'' }],
+   *  onOpen(box), getValue(value, box) → valeur retournée (ou undefined pour garder ouvert)
+   * Retourne une promesse résolue avec la valeur du bouton (null si fermée).
+   */
+  function modal(options) {
+    return new Promise(function (resolve) {
+      var overlay = el('div', { class: 'modal-overlay', role: 'dialog', 'aria-modal': 'true' });
+      var box = el('div', { class: 'modal-box' + (options.wide ? ' modal-wide' : '') });
+      box.innerHTML =
+        (options.title ? '<h2 class="modal-title">' + escapeHtml(options.title) + '</h2>' : '') +
+        '<div class="modal-body">' + (options.body || '') + '</div>' +
+        '<div class="modal-error" aria-live="assertive"></div>' +
+        '<div class="modal-actions"></div>';
+      var actions = box.querySelector('.modal-actions');
+      var buttons = options.buttons || [{ label: 'OK', value: true, kind: 'primary' }];
+      buttons.forEach(function (b) {
+        var btn = el('button', { type: 'button', class: 'btn ' + (b.kind ? 'btn-' + b.kind : '') }, escapeHtml(b.label));
+        btn.addEventListener('click', function () { finish(b.value); });
+        actions.appendChild(btn);
+      });
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      openCount++;
+
+      function finish(value) {
+        var result = value;
+        if (options.getValue && value !== null && value !== false) {
+          result = options.getValue(value, box);
+          if (result === undefined) return; // validation échouée : on reste ouvert
+        }
+        document.removeEventListener('keydown', onKey, true);
+        overlay.remove();
+        openCount--;
+        resolve(result);
+      }
+
+      function onKey(e) {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(null); }
+        else if (e.key === 'Enter' && options.enterValue !== undefined && e.target.tagName !== 'TEXTAREA') {
+          e.preventDefault(); e.stopPropagation(); finish(options.enterValue);
+        } else if (options.onKey) {
+          options.onKey(e, box);
+        }
+      }
+      document.addEventListener('keydown', onKey, true);
+
+      box.setError = function (msg) { box.querySelector('.modal-error').textContent = msg || ''; };
+      if (options.onOpen) options.onOpen(box, finish);
+      var focusTarget = box.querySelector('[autofocus]') || box.querySelector('.btn-primary') || box.querySelector('.btn');
+      if (focusTarget) setTimeout(function () { focusTarget.focus(); }, 30);
+    });
+  }
+
+  function alertBox(title, message) {
+    return modal({ title: title, body: '<p>' + message + '</p>', enterValue: true });
+  }
+
+  function confirmBox(title, message, okLabel, danger) {
+    return modal({
+      title: title,
+      body: '<p>' + message + '</p>',
+      buttons: [
+        { label: 'Annuler', value: false },
+        { label: okLabel || 'Confirmer', value: true, kind: danger ? 'danger' : 'primary' }
+      ]
+    }).then(function (v) { return v === true; });
+  }
+
+  /**
+   * Saisie d'un code PIN avec pavé numérique tactile.
+   * Retourne une promesse avec le code saisi (texte) ou null.
+   */
+  function pinPad(title, message) {
+    var code = '';
+    function render(box) {
+      box.querySelector('.pin-dots').textContent = code ? code.replace(/./g, '●') : ' ';
+    }
+    var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'];
+    return modal({
+      title: title,
+      body:
+        (message ? '<p>' + message + '</p>' : '') +
+        '<div class="pin-dots" aria-label="Code saisi"> </div>' +
+        '<div class="pin-pad">' + keys.map(function (k) {
+          return '<button type="button" class="pin-key" data-key="' + k + '">' + k + '</button>';
+        }).join('') + '</div>',
+      buttons: [
+        { label: 'Annuler', value: null },
+        { label: 'Valider', value: 'ok', kind: 'primary' }
+      ],
+      enterValue: 'ok',
+      onOpen: function (box) {
+        box.querySelectorAll('.pin-key').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var k = btn.getAttribute('data-key');
+            if (k === 'C') code = '';
+            else if (k === '⌫') code = code.slice(0, -1);
+            else if (code.length < 8) code += k;
+            box.setError('');
+            render(box);
+          });
+        });
+      },
+      onKey: function (e, box) {
+        if (/^[0-9]$/.test(e.key) && code.length < 8) { code += e.key; render(box); e.preventDefault(); }
+        else if (e.key === 'Backspace') { code = code.slice(0, -1); render(box); e.preventDefault(); }
+      },
+      getValue: function (value, box) {
+        if (code.length < 4) { box.setError('Le code doit comporter 4 à 8 chiffres.'); return undefined; }
+        return code;
+      }
+    });
+  }
+
+  /* --------------------------- Notifications ---------------------------- */
+
+  function toast(message, kind) {
+    var host = document.getElementById('toasts');
+    if (!host) return;
+    var t = el('div', { class: 'toast ' + (kind ? 'toast-' + kind : '') }, escapeHtml(message));
+    host.appendChild(t);
+    setTimeout(function () { t.classList.add('toast-hide'); }, 3500);
+    setTimeout(function () { t.remove(); }, 4200);
+  }
+
+  // Rendu HTML d'un symbole (emoji ou texte stylé « 7 » / « BAR »).
+  function symbolHtml(id, extraClass) {
+    var sym = Draw.getSymbol(id);
+    if (!sym) return '';
+    return '<span class="sym sym-' + sym.id + ' sym-' + sym.type + (extraClass ? ' ' + extraClass : '') +
+      '" title="' + escapeHtml(sym.name) + '">' + sym.char + '</span>';
+  }
+
+  window.UI = {
+    escapeHtml: escapeHtml,
+    symbolHtml: symbolHtml,
+    el: el,
+    formatTime: formatTime,
+    formatDateTime: formatDateTime,
+    modal: modal,
+    alert: alertBox,
+    confirm: confirmBox,
+    pinPad: pinPad,
+    toast: toast,
+    isModalOpen: function () { return openCount > 0; }
+  };
+})();
+
+</script>
+  <script>
+/* ---- js/slot.js ---- */
+/*
+ * slot.js — Écran de jeu : saisie du numéro, rouleaux animés,
+ * effets jackpot (confettis, lumières, sons) et retour automatique.
+ *
+ * Les rouleaux affichent TOUJOURS le résultat prévu : les symboles finaux
+ * viennent de App.play() (donc du tirage). Seuls les symboles qui défilent
+ * pendant la rotation sont aléatoires (pure décoration).
+ */
+(function () {
+  'use strict';
+
+  var reels = [];
+  var input = '';
+  var busy = false;         // rotation en cours ou résultat affiché
+  var resultTimer = null;
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* --------------------------- Rouleaux --------------------------------- */
+
+  function randomSymbol(exclude) {
+    var ids = Draw.SYMBOL_IDS;
+    var s;
+    do { s = ids[Math.floor(Math.random() * ids.length)]; } while (exclude && exclude.indexOf(s) !== -1);
+    return s;
+  }
+
+  function cellHtml(id) {
+    return '<div class="cell">' + UI.symbolHtml(id) + '</div>';
+  }
+
+  // Position du rouleau : k = index (éventuellement fractionnaire) de la
+  // case alignée sur la ligne de gain. Exprimé en unités CSS pour rester
+  // juste même si la fenêtre change de taille.
+  function setPos(reel, k) {
+    reel.strip.style.transform = 'translate3d(0, calc(var(--reel-offset) - ' + k.toFixed(4) + ' * var(--cell)), 0)';
+  }
+
+  // Rouleau au repos : 3 cases (au-dessus, ligne de gain, en dessous).
+  function setIdle(reel, center, above, below) {
+    reel.center = center;
+    reel.above = above || randomSymbol([center]);
+    reel.below = below || randomSymbol([center, reel.above]);
+    reel.strip.innerHTML = cellHtml(reel.above) + cellHtml(center) + cellHtml(reel.below);
+    setPos(reel, 1);
+  }
+
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+  function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
+
+  /**
+   * Fait tourner un rouleau pendant `duration` ms et l'arrête sur `target`.
+   * Retourne une promesse résolue à l'arrêt.
+   */
+  function spinReel(reel, target, duration, slowEnd) {
+    return new Promise(function (resolve) {
+      var fillerCount = Math.max(12, Math.round(duration / 1000 * 13));
+      var symbols = [reel.above, reel.center, reel.below];
+      for (var i = 0; i < fillerCount; i++) symbols.push(randomSymbol([symbols[symbols.length - 1]]));
+      var aboveT = randomSymbol([target, symbols[symbols.length - 1]]);
+      var belowT = randomSymbol([target, aboveT]);
+      symbols.push(aboveT, target, belowT);
+      reel.strip.innerHTML = symbols.map(cellHtml).join('');
+
+      var startK = 1;
+      var endK = symbols.length - 2;
+      var ease = slowEnd ? easeOutQuart : easeOutCubic;
+      var t0 = performance.now();
+      var lastCell = startK;
+      reel.el.classList.add('spinning');
+
+      function frame(now) {
+        var p = Math.min(1, (now - t0) / duration);
+        var k = startK + (endK - startK) * ease(p);
+        setPos(reel, k);
+        if (Math.floor(k) !== lastCell) {
+          lastCell = Math.floor(k);
+          Sound.tick();
+        }
+        if (p > 0.7) reel.el.classList.remove('spinning');
+        if (p < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          setIdle(reel, target, aboveT, belowT);
+          reel.inner.classList.remove('bounce');
+          void reel.inner.offsetWidth; // relance l'animation CSS
+          reel.inner.classList.add('bounce');
+          resolve();
+        }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  /* --------------------------- Confettis -------------------------------- */
+
+  var Confetti = (function () {
+    var canvas, ctx, particles = [], running = false, until = 0, raf = null;
+    var colors = ['#ffd700', '#ffec8b', '#e3001b', '#ffffff', '#ff4fa3', '#22d3ee', '#4ade80'];
+
+    function resize() {
+      var dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function spawn(count, fromX, fromY, spread) {
+      for (var i = 0; i < count; i++) {
+        var angle = -Math.PI / 2 + (Math.random() - 0.5) * spread;
+        var speed = 6 + Math.random() * 10;
+        particles.push({
+          x: fromX, y: fromY,
+          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+          rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.4,
+          size: 6 + Math.random() * 9,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          round: Math.random() < 0.3,
+          life: 1
+        });
+      }
+    }
+
+    function step() {
+      var w = window.innerWidth, h = window.innerHeight;
+      ctx.clearRect(0, 0, w, h);
+      if (running && performance.now() < until && particles.length < 700) {
+        // Pluie continue depuis le haut pendant l'effet.
+        for (var r = 0; r < 4; r++) {
+          particles.push({
+            x: Math.random() * w, y: -20, vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random() * 3,
+            rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3, size: 6 + Math.random() * 8,
+            color: colors[Math.floor(Math.random() * colors.length)], round: Math.random() < 0.3, life: 1
+          });
+        }
+      }
+      particles = particles.filter(function (p) { return p.y < h + 40 && p.life > 0; });
+      particles.forEach(function (p) {
+        p.vy += 0.18;
+        p.vx *= 0.99;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vr;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        if (p.round) {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2 * (0.4 + Math.abs(Math.sin(p.rot * 2))));
+        }
+        ctx.restore();
+      });
+      if (particles.length || (running && performance.now() < until)) {
+        raf = requestAnimationFrame(step);
+      } else {
+        running = false;
+        raf = null;
+      }
+    }
+
+    return {
+      init: function (c) {
+        canvas = c;
+        ctx = c.getContext('2d');
+        resize();
+        window.addEventListener('resize', resize);
+      },
+      start: function (ms) {
+        var w = window.innerWidth, h = window.innerHeight;
+        running = true;
+        until = performance.now() + (ms || 4000);
+        spawn(120, w * 0.15, h, 1.2);
+        spawn(120, w * 0.85, h, 1.2);
+        spawn(80, w * 0.5, h * 0.6, 2.5);
+        if (!raf) raf = requestAnimationFrame(step);
+      },
+      stop: function () {
+        running = false;
+        particles = [];
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+  })();
+
+  /* ------------------------- Saisie & messages -------------------------- */
+
+  function maxDigits() {
+    var n = App.state.draw ? App.state.draw.ticketCount : App.state.config.ticketCount;
+    return String(n || 1).length;
+  }
+
+  function renderInput() {
+    var v = $('ticket-value');
+    v.textContent = input || '—';
+    v.classList.toggle('empty', !input);
+  }
+
+  function setMessage(html, kind) {
+    var m = $('game-message');
+    m.innerHTML = html;
+    m.className = 'game-message' + (kind ? ' msg-' + kind : '');
+    if (kind === 'error') {
+      void m.offsetWidth;
+      m.classList.add('shake');
+    }
+  }
+
+  function defaultMessage() {
+    setMessage('Entrez votre numéro de ticket');
+  }
+
+  function pressKey(key) {
+    if (busy) return;
+    Sound.unlock();
+    if (key === 'clear') input = '';
+    else if (key === 'back') input = input.slice(0, -1);
+    else if (/^[0-9]$/.test(key)) {
+      if (input === '' && key === '0') return;
+      if (input.length >= maxDigits()) { Sound.error(); return; }
+      input += key;
+    }
+    Sound.key();
+    renderInput();
+    if ($('game-message').classList.contains('msg-error')) defaultMessage();
+  }
+
+  /* ------------------------------ Partie -------------------------------- */
+
+  function play(force) {
+    if (busy) return;
+    Sound.unlock();
+    App.keepAwake();
+    var result = App.play(input, force);
+    if (!result.ok) {
+      var c = result.check;
+      Sound.error();
+      if (c.code === 'played') {
+        var html = '⛔ Ticket n°' + c.ticket + ' : ce ticket a déjà joué !';
+        if (App.isDemo()) html += ' <button type="button" class="btn btn-small" id="btn-replay">Rejouer (démo)</button>';
+        setMessage(html, 'error');
+        var replay = $('btn-replay');
+        if (replay) replay.addEventListener('click', function () { play(true); });
+      } else {
+        setMessage('⛔ ' + UI.escapeHtml(c.message), 'error');
+      }
+      return;
+    }
+    runSpin(result);
+  }
+
+  function runSpin(result) {
+    busy = true;
+    document.body.classList.add('game-busy');
+    var machine = $('machine-frame');
+    machine.classList.add('is-spinning');
+    setMessage('🍀 Bonne chance, ticket n°' + result.ticket + ' !', 'info');
+    Sound.spinStart();
+
+    var sym = result.reel.symbols;
+    var twoMatch = sym[0] === sym[1];
+    var durations = [1900, 2700, twoMatch ? 5200 : 3500];
+    var stops = reels.map(function (reel, i) {
+      return spinReel(reel, sym[i], durations[i], i === 2 && twoMatch).then(function () {
+        Sound.reelStop(i);
+        if (i === 1 && twoMatch) {
+          reels[2].el.classList.add('suspense');
+          Sound.suspense();
+          setMessage('😮 Encore un…', 'info');
+        }
+      });
+    });
+
+    Promise.all(stops).then(function () {
+      machine.classList.remove('is-spinning');
+      reels[2].el.classList.remove('suspense');
+      if (result.prize) {
+        machine.classList.add('is-jackpot');
+        document.body.classList.add('jackpot');
+        reels.forEach(function (r) { r.el.classList.add('win'); });
+        Sound.win();
+        Confetti.start(5000);
+        setMessage('🎉 JACKPOT ! 🎉', 'win');
+        setTimeout(function () { showResult(result); }, 1100);
+      } else {
+        setTimeout(function () { Sound.lose(); }, 250);
+        setMessage('Pas de chance…', 'lose');
+        setTimeout(function () { showResult(result); }, 1300);
+      }
+    });
+  }
+
+  function showResult(result) {
+    var card = $('result-card');
+    var s = App.state.settings;
+    var delay;
+    if (result.prize) {
+      delay = Math.max(3, Number(s.returnDelayWin) || 15);
+      card.className = 'result-card result-win';
+      card.innerHTML =
+        '<div class="jackpot-title">JACKPOT !</div>' +
+        '<div class="result-symbols">' + result.reel.symbols.map(function (id) { return UI.symbolHtml(id); }).join('') + '</div>' +
+        '<div class="result-ticket">Ticket n° ' + result.ticket + '</div>' +
+        '<div class="result-label">Vous gagnez</div>' +
+        '<div class="result-prize">' + UI.escapeHtml(result.prize.name) + '</div>' +
+        '<div class="result-hint">Présentez votre ticket à l’organisation 🎉</div>';
+    } else {
+      delay = Math.max(2, Number(s.returnDelayLose) || 7);
+      card.className = 'result-card result-lose';
+      card.innerHTML =
+        '<div class="lose-title">Pas de chance…</div>' +
+        '<div class="result-ticket">Ticket n° ' + result.ticket + '</div>' +
+        '<div class="lose-text">Merci d’avoir joué, et bonne année ! 🥂</div>';
+    }
+    var overlay = $('result-overlay');
+    overlay.hidden = false;
+    overlay.classList.toggle('is-win', !!result.prize);
+    var bar = $('result-countdown-bar');
+    bar.style.transition = 'none';
+    bar.style.width = '100%';
+    void bar.offsetWidth;
+    bar.style.transition = 'width ' + delay + 's linear';
+    bar.style.width = '0%';
+    clearTimeout(resultTimer);
+    // Petit délai avant d'accepter un clic, pour éviter une fermeture accidentelle.
+    overlay.dataset.ready = '0';
+    setTimeout(function () { overlay.dataset.ready = '1'; }, 800);
+    resultTimer = setTimeout(closeResult, delay * 1000);
+  }
+
+  function closeResult() {
+    clearTimeout(resultTimer);
+    resultTimer = null;
+    $('result-overlay').hidden = true;
+    Confetti.stop();
+    document.body.classList.remove('jackpot', 'game-busy');
+    $('machine-frame').classList.remove('is-jackpot');
+    reels.forEach(function (r) { r.el.classList.remove('win'); });
+    busy = false;
+    input = '';
+    renderInput();
+    defaultMessage();
+  }
+
+  /* --------------------------- Affichage -------------------------------- */
+
+  function refresh() {
+    var s = App.state;
+    $('game-title').textContent = s.title || 'Grande Tombola du Nouvel An';
+    var status = App.status();
+    var nr = $('not-ready');
+    nr.hidden = status === 'ready';
+    if (status === 'unconfigured') {
+      $('not-ready-text').textContent = 'Aucun tirage n’a encore été configuré.';
+    } else if (status === 'unlocked') {
+      $('not-ready-text').textContent = 'Le tirage est prêt mais pas encore verrouillé. Verrouillez-le en administration pour ouvrir le jeu.';
+    }
+    $('not-ready-admin').textContent = App.hasPin() || App.isDemo() ? '⚙ Administration' : '⚙ Configurer la soirée';
+    $('not-ready-demo').hidden = App.isDemo();
+    $('btn-mute').textContent = App.prefs.muted ? '🔇' : '🔊';
+    $('btn-mute').title = App.prefs.muted ? 'Activer le son' : 'Couper le son';
+    if (input.length > maxDigits()) { input = ''; }
+    renderInput();
+    fitLayout();
+  }
+
+  // Ajuste --fit pour que la machine et le pavé tiennent dans l'écran,
+  // quelle que soit sa taille (tablette, ordinateur, bannière démo affichée…).
+  function fitLayout() {
+    var screen = $('screen-game');
+    if (screen.hidden) return;
+    var fit = 1;
+    screen.style.setProperty('--fit', '1');
+    var parts = [$('machine-frame'), $('game-message'), document.querySelector('.panel')];
+    function overflows() {
+      var box = screen.getBoundingClientRect();
+      var top = document.querySelector('.game-main').getBoundingClientRect().top;
+      return parts.some(function (el) {
+        var r = el.getBoundingClientRect();
+        return r.bottom > box.bottom - 2 || r.top < top - 1 || r.right > box.right + 1 || r.left < box.left - 1;
+      });
+    }
+    while (fit > 0.5 && overflows()) {
+      fit -= 0.04;
+      screen.style.setProperty('--fit', fit.toFixed(2));
+    }
+  }
+
+  function fillBulbs() {
+    document.querySelectorAll('[data-bulbs]').forEach(function (row) {
+      var n = Number(row.getAttribute('data-bulbs'));
+      var html = '';
+      for (var i = 0; i < n; i++) html += '<span class="bulb"></span>';
+      row.innerHTML = html;
+    });
+  }
+
+  function onKeyDown(e) {
+    if (App.screen !== 'game' || UI.isModalOpen()) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var overlay = $('result-overlay');
+    if (!overlay.hidden) {
+      if ((e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') && overlay.dataset.ready === '1') {
+        e.preventDefault();
+        closeResult();
+      }
+      return;
+    }
+    if (!$('not-ready').hidden) return;
+    if (/^[0-9]$/.test(e.key)) { e.preventDefault(); pressKey(e.key); }
+    else if (e.key === 'Backspace') { e.preventDefault(); pressKey('back'); }
+    else if (e.key === 'Escape' || e.key === 'Delete') { e.preventDefault(); pressKey('clear'); }
+    else if (e.key === 'Enter') { e.preventDefault(); play(false); }
+  }
+
+  var SlotGame = {
+    init: function () {
+      fillBulbs();
+      document.querySelectorAll('#reels .reel').forEach(function (el) {
+        var reel = { el: el, inner: el.querySelector('.reel-inner'), strip: el.querySelector('.strip') };
+        reels.push(reel);
+      });
+      // Position de départ : trois symboles différents.
+      var start = [randomSymbol()];
+      start.push(randomSymbol(start));
+      start.push(randomSymbol(start));
+      reels.forEach(function (r, i) { setIdle(r, start[i]); });
+      Confetti.init($('confetti'));
+
+      $('keypad').addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-key]');
+        if (btn) pressKey(btn.getAttribute('data-key'));
+      });
+      $('btn-play').addEventListener('click', function () { play(false); });
+      $('result-overlay').addEventListener('click', function () {
+        if ($('result-overlay').dataset.ready === '1') closeResult();
+      });
+      document.addEventListener('keydown', onKeyDown);
+
+      $('btn-mute').addEventListener('click', function () {
+        App.setMuted(!App.prefs.muted);
+        Sound.unlock();
+        if (!App.prefs.muted) Sound.key();
+      });
+      $('btn-fullscreen').addEventListener('click', function () { App.toggleFullscreen(); });
+      $('btn-admin').addEventListener('click', function () { if (!busy) App.requestAdmin(); });
+      $('not-ready-admin').addEventListener('click', function () { App.requestAdmin(); });
+      $('not-ready-demo').addEventListener('click', function () {
+        App.loadMode('demo');
+        App.showScreen('game');
+        UI.toast('Mode démo activé : les données de la soirée ne sont pas touchées.', 'success');
+      });
+
+      $('demo-reset').addEventListener('click', function () {
+        App.resetDemo();
+        if (App.screen === 'admin') Admin.render();
+        UI.toast('Démo réinitialisée : tous les tickets peuvent rejouer.', 'success');
+      });
+      $('demo-quit').addEventListener('click', function () {
+        if (busy) return;
+        App.loadMode('real');
+        App.showScreen('game');
+        UI.toast('Retour aux données de la soirée.', 'success');
+      });
+
+      App.onChange(function () { if (App.screen === 'game') refresh(); });
+      var resizeTimer = null;
+      window.addEventListener('resize', function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(fitLayout, 120);
+      });
+      defaultMessage();
+    },
+
+    onShow: function () {
+      refresh();
+    },
+
+    isBusy: function () { return busy; }
+  };
+
+  window.SlotGame = SlotGame;
+})();
+
+</script>
+  <script>
+/* ---- js/admin.js ---- */
+/*
+ * admin.js — Écran d'administration (protégé par PIN) et vue imprimable.
+ *
+ * Onglets : tableau de bord, lots & tickets, tirage (vérifiabilité),
+ * journal des parties, réglages & sécurité. Les actions des boutons
+ * passent par des attributs data-action (délégation d'événements).
+ */
+(function () {
+  'use strict';
+
+  var esc = function (v) { return UI.escapeHtml(v); };
+  var $ = function (id) { return document.getElementById(id); };
+
+  var Admin = {
+    tab: 'dashboard',
+    draft: null,      // copie de travail de la configuration
+    dirty: false,     // modifications non enregistrées
+    drawFilter: 'all',
+    drawSearch: '',
+    lastVerify: null
+  };
+
+  /* ----------------------------- Outils --------------------------------- */
+
+  function symbolLabel(id) {
+    var s = Draw.getSymbol(id);
+    if (!s) return '?';
+    return s.type === 'emoji' ? s.char + ' ' + s.name : s.char === s.name ? s.name : s.char + ' ' + s.name;
+  }
+
+  function prizeCell(prize) {
+    if (!prize) return '<span class="muted">perdu</span>';
+    return '<span class="prize-cell">' + UI.symbolHtml(prize.symbol, 'sym-mini') + ' ' + esc(prize.name) + '</span>';
+  }
+
+  function statusBadge() {
+    var st = App.status();
+    if (st === 'ready') return '<span class="badge badge-ok">🔒 Tirage verrouillé — jeu ouvert</span>';
+    if (st === 'unlocked') return '<span class="badge badge-warn">Tirage généré, non verrouillé</span>';
+    return '<span class="badge badge-off">Aucun tirage</span>';
+  }
+
+  function cloneConfig(c) { return JSON.parse(JSON.stringify(c)); }
+
+  /* -------------------------- Bandeau d'alertes ------------------------- */
+
+  function renderAlerts() {
+    var html = '';
+    if (!Store.isAvailable()) {
+      html += '<div class="alert alert-danger">⚠ Le stockage du navigateur est indisponible : rien n’est sauvegardé automatiquement. Utilisez « Sauvegarder maintenant » très régulièrement, ou ouvrez le site dans un autre navigateur (hors navigation privée).</div>';
+    } else if (!App.lastSaveOk) {
+      html += '<div class="alert alert-danger">⚠ La dernière sauvegarde automatique a échoué (stockage plein ?). Téléchargez une sauvegarde maintenant.</div>';
+    }
+    if (App.isDemo()) {
+      html += '<div class="alert alert-demo">🎲 Mode démo : données fictives stockées à part. Les données de la vraie soirée ne sont jamais modifiées. Pas de code PIN en démo.</div>';
+    }
+    var reminder = App.backupReminder();
+    if (reminder && App.isLocked()) {
+      html += '<div class="alert alert-warn">💾 Pensez à sauvegarder : ' + esc(reminder) + ' <button type="button" class="btn btn-small btn-primary" data-action="backup">Sauvegarder maintenant</button></div>';
+    }
+    $('admin-alerts').innerHTML = html;
+    $('admin-mode').textContent = App.isDemo() ? '— MODE DÉMO' : '';
+  }
+
+  /* -------------------------- Tableau de bord --------------------------- */
+
+  function renderDashboard() {
+    var st = App.stats();
+    var s = App.state;
+    var totalPrizes = s.config.prizes.reduce(function (a, p) { return a + p.quantity; }, 0);
+    var won = st.wins.length;
+    var lastBackup = s.lastBackupAt ? UI.formatDateTime(s.lastBackupAt) : 'jamais';
+
+    var html = '<div class="card"><div class="card-row">' + statusBadge() +
+      '<span class="muted">Dernière sauvegarde sur fichier : ' + esc(lastBackup) + '</span></div></div>';
+
+    html += '<div class="kpis">' +
+      kpi(st.played, 'tickets joués', 'sur ' + st.total) +
+      kpi(st.remaining, 'tickets restants', '') +
+      kpi(won, 'lots gagnés', 'sur ' + totalPrizes) +
+      kpi(totalPrizes - won, 'lots restants', '') +
+      '</div>';
+
+    html += '<div class="card"><h3>Lots</h3>';
+    if (!st.prizes.length) html += '<p class="muted">Aucun lot configuré.</p>';
+    else {
+      html += '<table class="table"><thead><tr><th>Lot</th><th class="num">Quantité</th><th class="num">Gagnés</th><th class="num">Restants</th><th>Progression</th></tr></thead><tbody>';
+      st.prizes.forEach(function (p) {
+        var pct = p.prize.quantity ? Math.round(p.won / p.prize.quantity * 100) : 0;
+        html += '<tr><td>' + prizeCell(p.prize) + '</td><td class="num">' + p.prize.quantity + '</td><td class="num">' + p.won +
+          '</td><td class="num"><strong>' + p.remaining + '</strong></td><td><div class="progress"><div style="width:' + pct + '%"></div></div></td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+
+    html += '<div class="card"><h3>Lots déjà gagnés</h3>';
+    if (!st.wins.length) html += '<p class="muted">Aucun lot gagné pour l’instant.</p>';
+    else {
+      html += '<table class="table"><thead><tr><th>Heure</th><th class="num">Ticket</th><th>Lot</th></tr></thead><tbody>';
+      st.wins.forEach(function (w) {
+        html += '<tr><td>' + UI.formatTime(w.time) + '</td><td class="num"><strong>' + w.ticket + '</strong></td><td>' + prizeCell(App.getPrize(w.prizeId)) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+
+    html += '<div class="card"><h3>Actions rapides</h3><div class="btn-row">' +
+      '<button type="button" class="btn btn-primary" data-action="backup">💾 Sauvegarder maintenant</button>' +
+      '<button type="button" class="btn" data-action="restore">📂 Restaurer une sauvegarde</button>' +
+      '<button type="button" class="btn" data-action="print"' + (s.draw ? '' : ' disabled') + '>🖨 Plan B / vue imprimable</button>' +
+      '<button type="button" class="btn" data-action="verify"' + (s.draw ? '' : ' disabled') + '>✅ Test de cohérence</button>' +
+      '<button type="button" class="btn" data-action="fullscreen">⛶ Plein écran</button>' +
+      '</div>' + verifyHtml() + '</div>';
+    return html;
+  }
+
+  function kpi(value, label, sub) {
+    return '<div class="kpi"><div class="kpi-value">' + value + '</div><div class="kpi-label">' + label +
+      (sub ? ' <span class="muted">' + sub + '</span>' : '') + '</div></div>';
+  }
+
+  /* ------------------------ Lots & tickets ------------------------------ */
+
+  function ensureDraft() {
+    if (!Admin.draft || !Admin.dirty) {
+      Admin.draft = cloneConfig(App.state.config);
+      Admin.dirty = false;
+    }
+  }
+
+  function symbolOptions(selected, usedByOthers) {
+    return Draw.SYMBOLS.map(function (s) {
+      var used = usedByOthers.indexOf(s.id) !== -1;
+      return '<option value="' + s.id + '"' + (s.id === selected ? ' selected' : '') + (used ? ' disabled' : '') + '>' +
+        esc(symbolLabel(s.id)) + (used ? ' (déjà pris)' : '') + '</option>';
+    }).join('');
+  }
+
+  function renderConfig() {
+    var locked = App.isLocked();
+    if (locked) {
+      var c = App.state.config;
+      var html = '<div class="alert alert-info">🔒 Le tirage est verrouillé : la configuration ne peut plus être modifiée (sauf réinitialisation complète dans « Réglages &amp; sécurité »).</div>';
+      html += '<div class="card"><p><strong>' + c.ticketCount + '</strong> tickets, numérotés de 1 à ' + c.ticketCount + '.</p>';
+      html += '<table class="table"><thead><tr><th>Symbole</th><th>Lot</th><th class="num">Quantité</th></tr></thead><tbody>';
+      c.prizes.forEach(function (p) {
+        html += '<tr><td>' + UI.symbolHtml(p.symbol, 'sym-mini') + ' ' + esc(Draw.getSymbol(p.symbol).name) + '</td><td>' + esc(p.name) + '</td><td class="num">' + p.quantity + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      return html;
+    }
+
+    ensureDraft();
+    var d = Admin.draft;
+    var html2 = '<div class="card"><h3>Tickets</h3>' +
+      '<label class="field"><span>Nombre total de tickets (numérotés de 1 à N)</span>' +
+      '<input type="number" inputmode="numeric" min="1" max="' + Draw.MAX_TICKETS + '" step="1" data-field="ticketCount" value="' + esc(d.ticketCount) + '"></label></div>';
+
+    html2 += '<div class="card"><h3>Lots</h3>';
+    if (!d.prizes.length) html2 += '<p class="muted">Aucun lot pour l’instant. Ajoutez le premier lot ci-dessous.</p>';
+    else {
+      html2 += '<div class="prize-list">';
+      d.prizes.forEach(function (p, i) {
+        var others = d.prizes.filter(function (o, j) { return j !== i; }).map(function (o) { return o.symbol; });
+        html2 += '<div class="prize-row" data-index="' + i + '">' +
+          '<span class="prize-preview">' + UI.symbolHtml(p.symbol) + '</span>' +
+          '<label class="field"><span>Symbole</span><select data-pfield="symbol">' + symbolOptions(p.symbol, others) + '</select></label>' +
+          '<label class="field field-grow"><span>Nom du lot</span><input type="text" maxlength="60" data-pfield="name" value="' + esc(p.name) + '" placeholder="ex. Panier garni"></label>' +
+          '<label class="field field-small"><span>Quantité</span><input type="number" inputmode="numeric" min="1" step="1" data-pfield="quantity" value="' + esc(p.quantity) + '"></label>' +
+          '<button type="button" class="btn btn-danger btn-icon" data-action="del-prize" title="Supprimer ce lot">🗑</button>' +
+          '</div>';
+      });
+      html2 += '</div>';
+    }
+    var canAdd = d.prizes.length < Draw.SYMBOLS.length;
+    html2 += '<div class="btn-row"><button type="button" class="btn" data-action="add-prize"' + (canAdd ? '' : ' disabled') + '>＋ Ajouter un lot</button></div></div>';
+
+    html2 += '<div class="card"><div id="config-validation"></div><div class="btn-row">' +
+      '<button type="button" class="btn btn-primary" data-action="save-config">✔ Enregistrer la configuration</button>' +
+      '<button type="button" class="btn" data-action="discard-config">Annuler les modifications</button>' +
+      '</div></div>';
+    return html2;
+  }
+
+  function renderConfigValidation() {
+    var box = $('config-validation');
+    if (!box || !Admin.draft) return;
+    var v = Draw.validateConfig(Admin.draft);
+    var n = Admin.draft.ticketCount;
+    var html = '';
+    if (Admin.dirty) html += '<p class="badge badge-warn">Modifications non enregistrées</p>';
+    if (typeof n === 'number' && n >= 1) {
+      html += '<p>Total : <strong>' + v.totalPrizes + '</strong> lot(s) à gagner pour <strong>' + n + '</strong> tickets — ' +
+        Math.max(0, n - v.totalPrizes) + ' ticket(s) perdant(s).</p>';
+    }
+    v.errors.forEach(function (e) { html += '<div class="alert alert-danger">✖ ' + esc(e) + '</div>'; });
+    v.warnings.forEach(function (w) { html += '<div class="alert alert-warn">⚠ ' + esc(w) + '</div>'; });
+    if (v.ok && !v.warnings.length) html += '<div class="alert alert-ok">✔ Configuration valide.</div>';
+    box.innerHTML = html;
+  }
+
+  function onConfigInput(e) {
+    var t = e.target;
+    if (!Admin.draft) return;
+    var num = function (v) { return v === '' ? NaN : Number(v); };
+    if (t.dataset.field === 'ticketCount') {
+      Admin.draft.ticketCount = num(t.value);
+    } else if (t.dataset.pfield) {
+      var row = t.closest('.prize-row');
+      var p = Admin.draft.prizes[Number(row.dataset.index)];
+      if (t.dataset.pfield === 'quantity') p.quantity = num(t.value);
+      else if (t.dataset.pfield === 'name') p.name = t.value;
+      else if (t.dataset.pfield === 'symbol') {
+        p.symbol = t.value;
+        Admin.dirty = true;
+        renderTab(); // met à jour les symboles disponibles des autres lots
+        return;
+      }
+    } else {
+      return;
+    }
+    Admin.dirty = true;
+    renderConfigValidation();
+  }
+
+  function addPrize() {
+    ensureDraft();
+    var used = Admin.draft.prizes.map(function (p) { return p.symbol; });
+    var free = Draw.SYMBOL_IDS.filter(function (s) { return used.indexOf(s) === -1; })[0];
+    Admin.draft.prizes.push({ id: App.newPrizeId(), name: '', quantity: 1, symbol: free });
+    Admin.dirty = true;
+    renderTab();
+    var inputs = document.querySelectorAll('.prize-row [data-pfield="name"]');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }
+
+  function saveConfig() {
+    var d = Admin.draft;
+    d.prizes.forEach(function (p) { p.name = String(p.name || '').trim(); });
+    var v = Draw.validateConfig(d);
+    if (!v.ok) {
+      renderConfigValidation();
+      UI.alert('Configuration invalide', 'Corrigez les erreurs indiquées en rouge avant d’enregistrer.');
+      return;
+    }
+    var proceed = App.state.draw
+      ? UI.confirm('Modifier la configuration', 'Un tirage a déjà été généré. Enregistrer la nouvelle configuration <strong>effacera ce tirage</strong> : il faudra le régénérer.', 'Enregistrer et effacer le tirage', true)
+      : Promise.resolve(true);
+    proceed.then(function (ok) {
+      if (!ok) return;
+      try {
+        App.setConfig(cloneConfig(d));
+        Admin.dirty = false;
+        UI.toast('Configuration enregistrée.', 'success');
+        renderTab();
+      } catch (e) {
+        UI.alert('Erreur', esc(e.message));
+      }
+    });
+  }
+
+  /* ------------------------------ Tirage -------------------------------- */
+
+  function renderDraw() {
+    var s = App.state;
+    var d = s.draw;
+    var locked = App.isLocked();
+    var played = Object.keys(s.plays).length;
+    var v = Draw.validateConfig(s.config);
+    var html = '<div class="card"><div class="card-row">' + statusBadge() + '</div>';
+
+    if (Admin.dirty) {
+      html += '<div class="alert alert-warn">⚠ Vous avez des modifications de lots non enregistrées (onglet « Lots &amp; tickets »). Le tirage utilise la configuration enregistrée.</div>';
+    }
+    if (!v.ok) {
+      html += '<div class="alert alert-danger">La configuration enregistrée est invalide : corrigez-la dans l’onglet « Lots &amp; tickets ».</div>';
+    }
+
+    if (!locked) {
+      html += '<h3>Graine (seed) du tirage</h3>' +
+        '<p class="muted">Même seed + même configuration = exactement le même tirage. Notez le seed pour pouvoir prouver le tirage.</p>' +
+        '<div class="seed-row"><input type="text" id="seed-input" class="seed-input" maxlength="64" value="' + esc(s.seedDraft || (d && d.seed) || '') + '">' +
+        '<button type="button" class="btn" data-action="new-seed">🎲 Nouveau seed</button></div>' +
+        '<div class="btn-row">' +
+        '<button type="button" class="btn btn-primary" data-action="generate"' + (v.ok && !played ? '' : ' disabled') + '>' + (d ? '↻ Régénérer le tirage' : '🎲 Générer le tirage') + '</button>' +
+        (d ? '<button type="button" class="btn btn-gold" data-action="lock">🔒 Verrouiller le tirage</button>' : '') +
+        '</div>';
+    } else if (App.isDemo()) {
+      html += '<div class="btn-row"><button type="button" class="btn" data-action="unlock-demo">🔓 Déverrouiller (démo uniquement)</button></div>';
+    }
+
+    if (d) {
+      html += '<dl class="draw-info">' +
+        '<dt>Seed</dt><dd><code>' + esc(d.seed) + '</code></dd>' +
+        '<dt>Empreinte</dt><dd><code>' + esc(d.fingerprint) + '</code></dd>' +
+        '<dt>Tickets</dt><dd>' + d.ticketCount + ' (dont ' + Object.keys(d.assignments).length + ' gagnants)</dd>' +
+        '<dt>Généré le</dt><dd>' + esc(UI.formatDateTime(d.generatedAt)) + '</dd>' +
+        '<dt>Verrouillé le</dt><dd>' + (d.lockedAt && locked ? esc(UI.formatDateTime(d.lockedAt)) : '—') + '</dd>' +
+        '</dl>';
+    }
+    html += '</div>';
+
+    html += '<div class="card"><h3>Vérification &amp; export</h3><div class="btn-row">' +
+      '<button type="button" class="btn" data-action="verify"' + (d ? '' : ' disabled') + '>✅ Test de cohérence</button>' +
+      '<button type="button" class="btn" data-action="export-json"' + (d ? '' : ' disabled') + '>⬇ Export JSON</button>' +
+      '<button type="button" class="btn" data-action="export-csv"' + (d ? '' : ' disabled') + '>⬇ Export CSV</button>' +
+      '<button type="button" class="btn" data-action="print"' + (d ? '' : ' disabled') + '>🖨 Vue imprimable / Plan B</button>' +
+      '<button type="button" class="btn" data-action="import">📂 Importer un tirage</button>' +
+      '</div>' + verifyHtml() + '</div>';
+
+    if (d) html += renderDrawTable();
+    return html;
+  }
+
+  function renderDrawTable() {
+    var s = App.state;
+    var d = s.draw;
+    var filters = [['all', 'Tous'], ['win', 'Gagnants'], ['lose', 'Perdants'], ['played', 'Joués'], ['unplayed', 'Non joués']];
+    var html = '<div class="card"><h3>Tableau complet du tirage</h3><div class="table-tools">' +
+      filters.map(function (f) {
+        return '<button type="button" class="btn btn-small' + (Admin.drawFilter === f[0] ? ' btn-primary' : '') + '" data-action="filter" data-filter="' + f[0] + '">' + f[1] + '</button>';
+      }).join('') +
+      '<input type="search" inputmode="numeric" id="draw-search" placeholder="Rechercher un n°" value="' + esc(Admin.drawSearch) + '">' +
+      '</div><div class="table-scroll"><table class="table table-compact"><thead><tr><th class="num">Ticket</th><th>Résultat</th><th>Statut</th></tr></thead><tbody>';
+    var rows = [];
+    for (var t = 1; t <= d.ticketCount; t++) {
+      var pid = d.assignments[String(t)];
+      var play = s.plays[String(t)];
+      var f = Admin.drawFilter;
+      if (f === 'win' && !pid) continue;
+      if (f === 'lose' && pid) continue;
+      if (f === 'played' && !play) continue;
+      if (f === 'unplayed' && play) continue;
+      if (Admin.drawSearch && String(t).indexOf(Admin.drawSearch) === -1) continue;
+      rows.push('<tr class="' + (pid ? 'row-win' : '') + '"><td class="num"><strong>' + t + '</strong></td><td>' + prizeCell(App.getPrize(pid)) +
+        '</td><td>' + (play ? '✔ joué à ' + UI.formatTime(play.time) : '<span class="muted">—</span>') + '</td></tr>');
+    }
+    html += rows.join('') + '</tbody></table>';
+    if (!rows.length) html += '<p class="muted">Aucun ticket ne correspond.</p>';
+    html += '</div></div>';
+    return html;
+  }
+
+  function verifyHtml() {
+    var r = Admin.lastVerify;
+    if (!r) return '';
+    var html = '<div class="verify ' + (r.ok ? 'verify-ok' : 'verify-ko') + '"><h4>' +
+      (r.ok ? '✅ Tirage cohérent : tous les contrôles sont réussis' : '❌ Problème détecté') +
+      ' <span class="muted">(' + esc(UI.formatTime(r.time)) + ')</span></h4><ul>';
+    r.checks.forEach(function (c) {
+      html += '<li class="' + (c.ok ? 'ok' : 'ko') + '">' + (c.ok ? '✔' : '✖') + ' ' + esc(c.label) +
+        (c.detail ? '<br><span class="muted">' + esc(c.detail) + '</span>' : '') + '</li>';
+    });
+    return html + '</ul></div>';
+  }
+
+  function generate() {
+    var input = $('seed-input');
+    var seed = input ? input.value.trim() : '';
+    if (!seed) { UI.alert('Seed manquant', 'Saisissez un seed ou cliquez sur « Nouveau seed ».'); return; }
+    var proceed = App.state.draw
+      ? UI.confirm('Régénérer le tirage', 'Le tirage actuel sera remplacé par un nouveau tirage avec le seed « ' + esc(seed) + ' ».', 'Régénérer')
+      : Promise.resolve(true);
+    proceed.then(function (ok) {
+      if (!ok) return;
+      try {
+        var d = App.generate(seed);
+        Admin.lastVerify = null;
+        UI.toast('Tirage généré (' + Object.keys(d.assignments).length + ' gagnants).', 'success');
+        renderTab();
+      } catch (e) {
+        UI.alert('Impossible de générer le tirage', esc(e.message).replace(/\n/g, '<br>'));
+      }
+    });
+  }
+
+  function lockDraw() {
+    var check = App.verify();
+    if (!check.ok) {
+      Admin.lastVerify = Object.assign({ time: new Date().toISOString() }, check);
+      renderTab();
+      UI.alert('Verrouillage impossible', 'Le test de cohérence a échoué. Voir le détail.');
+      return;
+    }
+    UI.confirm('Verrouiller le tirage',
+      'Une fois verrouillé, <strong>le tirage et la liste des lots ne pourront plus être modifiés</strong> (sauf réinitialisation complète). Le jeu sera ouvert.<br><br>' +
+      'Conseil : exportez le tirage (JSON) et imprimez le plan B juste après.', '🔒 Verrouiller').then(function (ok) {
+      if (!ok) return;
+      App.lock();
+      UI.toast('Tirage verrouillé : la machine est prête !', 'success');
+      renderTab();
+    });
+  }
+
+  function runVerify() {
+    if (!App.state.draw) return;
+    Admin.lastVerify = Object.assign({ time: new Date().toISOString() }, App.verify());
+    renderTab();
+    UI.toast(Admin.lastVerify.ok ? 'Test de cohérence réussi.' : 'Le test de cohérence a détecté un problème !', Admin.lastVerify.ok ? 'success' : 'error');
+  }
+
+  /* ------------------------------ Journal ------------------------------- */
+
+  var LOG_TYPES = {
+    partie: '🎰 Partie', annulation: '↩ Annulation', tirage: '🎲 Tirage', verrouillage: '🔒 Verrouillage',
+    import: '📂 Import', restauration: '📂 Restauration', systeme: 'ℹ Système'
+  };
+
+  function renderLog() {
+    var s = App.state;
+    var html = '<div class="card"><h3>Annuler une partie</h3>' +
+      '<p class="muted">En cas d’erreur de saisie (mauvais numéro entré) : le ticket redevient « non joué ». L’annulation reste tracée dans le journal.</p>' +
+      '<div class="seed-row"><input type="number" inputmode="numeric" min="1" id="cancel-ticket" placeholder="N° de ticket">' +
+      '<button type="button" class="btn btn-danger" data-action="cancel-play">↩ Annuler la partie</button></div></div>';
+
+    html += '<div class="card"><h3>Journal (' + s.log.length + ' entrées)</h3><div class="btn-row">' +
+      '<button type="button" class="btn" data-action="export-log-csv">⬇ Export CSV</button>' +
+      '<button type="button" class="btn" data-action="export-log-json">⬇ Export JSON</button></div>';
+    if (!s.log.length) html += '<p class="muted">Journal vide.</p>';
+    else {
+      // Dernière partie enregistrée pour chaque ticket encore « joué ».
+      var latestPlay = {};
+      s.log.forEach(function (e, i) { if (e.type === 'partie') latestPlay[e.ticket] = i; });
+      html += '<div class="table-scroll"><table class="table table-compact"><thead><tr><th>Heure</th><th>Type</th><th class="num">Ticket</th><th>Détail</th><th></th></tr></thead><tbody>';
+      for (var i = s.log.length - 1; i >= 0; i--) {
+        var e = s.log[i];
+        var canCancel = e.type === 'partie' && latestPlay[e.ticket] === i && s.plays[String(e.ticket)];
+        html += '<tr class="log-' + esc(e.type) + (e.prizeId && e.type === 'partie' ? ' row-win' : '') + '"><td>' + esc(UI.formatDateTime(e.time)) + '</td><td>' + esc(LOG_TYPES[e.type] || e.type) +
+          '</td><td class="num">' + (e.ticket ? '<strong>' + e.ticket + '</strong>' : '') + '</td><td>' + esc(e.message || '') + '</td><td>' +
+          (canCancel ? '<button type="button" class="btn btn-small" data-action="cancel-play" data-ticket="' + e.ticket + '">Annuler</button>' : '') + '</td></tr>';
+      }
+      html += '</tbody></table></div>';
+    }
+    return html + '</div>';
+  }
+
+  function cancelPlay(ticket) {
+    ticket = Number(ticket);
+    var play = App.state.plays[String(ticket)];
+    if (!ticket || !play) {
+      UI.alert('Annulation impossible', 'Le ticket n°' + esc(ticket || '?') + ' n’a pas été joué.');
+      return;
+    }
+    var prize = App.getPrize(play.prizeId);
+    UI.confirm('Annuler la partie du ticket n°' + ticket,
+      'Partie jouée à ' + UI.formatTime(play.time) + ' — résultat : <strong>' + (prize ? esc(prize.name) : 'perdu') + '</strong>.<br>' +
+      'Le ticket pourra rejouer (il obtiendra le même résultat, fixé par le tirage).', 'Annuler la partie', true).then(function (ok) {
+      if (!ok) return;
+      App.cancelPlay(ticket, 'annulée par l’organisateur');
+      UI.toast('Partie du ticket n°' + ticket + ' annulée.', 'success');
+      renderTab();
+    });
+  }
+
+  /* ------------------------- Réglages & sécurité ------------------------ */
+
+  function renderSettings() {
+    var s = App.state;
+    var st = s.settings;
+    var html = '<div class="card"><h3>Affichage</h3>' +
+      '<label class="field"><span>Titre affiché sur la machine</span><input type="text" maxlength="60" data-setting="title" value="' + esc(s.title) + '"></label>' +
+      '<label class="check"><input type="checkbox" data-setting="nearMissEnabled"' + (st.nearMissEnabled ? ' checked' : '') + '> Effet « presque gagné » (2 symboles identiques sur 3 pour certains perdants)</label>' +
+      '<label class="field"><span>Part des perdants avec « presque gagné » : <strong id="nm-value">' + st.nearMissPercent + ' %</strong></span>' +
+      '<input type="range" min="0" max="100" step="5" data-setting="nearMissPercent" value="' + st.nearMissPercent + '"' + (st.nearMissEnabled ? '' : ' disabled') + '></label>' +
+      '<p class="muted">Réglage d’affichage uniquement : il ne change jamais qui gagne (modifiable même après verrouillage).</p>' +
+      '<div class="field-row">' +
+      '<label class="field field-small"><span>Retour auto. après un gain (s)</span><input type="number" min="3" max="120" data-setting="returnDelayWin" value="' + st.returnDelayWin + '"></label>' +
+      '<label class="field field-small"><span>Retour auto. après une perte (s)</span><input type="number" min="2" max="120" data-setting="returnDelayLose" value="' + st.returnDelayLose + '"></label>' +
+      '</div></div>';
+
+    html += '<div class="card"><h3>Son</h3>' +
+      '<label class="field"><span>Volume : <strong id="vol-value">' + Math.round(App.prefs.volume * 100) + ' %</strong></span>' +
+      '<input type="range" min="0" max="1" step="0.05" data-pref="volume" value="' + App.prefs.volume + '"></label>' +
+      '<label class="check"><input type="checkbox" data-pref="muted"' + (App.prefs.muted ? ' checked' : '') + '> Muet</label>' +
+      '<div class="btn-row"><button type="button" class="btn" data-action="test-sound" data-sound="win">🔊 Tester : victoire</button>' +
+      '<button type="button" class="btn" data-action="test-sound" data-sound="lose">🔊 Tester : défaite</button>' +
+      '<button type="button" class="btn" data-action="test-sound" data-sound="reelStop">🔊 Tester : rouleau</button></div></div>';
+
+    html += '<div class="card"><h3>Sauvegardes</h3>' +
+      '<p>L’état est enregistré automatiquement dans le navigateur après chaque partie. Pour plus de sécurité, téléchargez régulièrement une sauvegarde sur fichier (par ex. sur une clé USB).</p>' +
+      '<div class="btn-row"><button type="button" class="btn btn-primary" data-action="backup">💾 Sauvegarder maintenant</button>' +
+      '<button type="button" class="btn" data-action="restore">📂 Restaurer une sauvegarde</button></div></div>';
+
+    html += '<div class="card"><h3>Mode démo</h3>';
+    if (App.isDemo()) {
+      html += '<p>Vous êtes en mode démo. Les données de la vraie soirée sont intactes.</p><div class="btn-row">' +
+        '<button type="button" class="btn" data-action="demo-reset">↺ Réinitialiser la démo</button>' +
+        '<button type="button" class="btn btn-primary" data-action="demo-quit">Quitter la démo</button></div>';
+    } else {
+      html += '<p>Pour présenter le concept : 100 tickets et 5 lots fictifs, stockés à part. La vraie soirée n’est jamais touchée.</p>' +
+        '<div class="btn-row"><button type="button" class="btn" data-action="demo-start">🎲 Lancer le mode démo</button></div>';
+    }
+    html += '</div>';
+
+    if (!App.isDemo()) {
+      html += '<div class="card"><h3>Code PIN</h3><div class="btn-row">' +
+        '<button type="button" class="btn" data-action="change-pin">🔑 Changer le code PIN</button></div></div>';
+    }
+
+    html += '<div class="card card-danger"><h3>Zone dangereuse</h3>' +
+      '<p>La réinitialisation complète efface le tirage, les parties et le journal' + (App.isDemo() ? ' de la démo' : ' de la soirée') + '. Téléchargez une sauvegarde avant !</p>' +
+      '<label class="check"><input type="checkbox" id="reset-keep"> Conserver la liste des lots et le nombre de tickets</label>' +
+      '<div class="btn-row"><button type="button" class="btn btn-danger" data-action="reset-all">⚠ Réinitialisation complète</button></div></div>';
+    return html;
+  }
+
+  function onSettingInput(e) {
+    var t = e.target;
+    var st = App.state.settings;
+    if (t.dataset.setting) {
+      var key = t.dataset.setting;
+      if (key === 'title') App.state.title = t.value.trim() || 'Grande Tombola du Nouvel An';
+      else if (key === 'nearMissEnabled') {
+        st.nearMissEnabled = t.checked;
+        var range = document.querySelector('[data-setting="nearMissPercent"]');
+        if (range) range.disabled = !t.checked;
+      } else if (key === 'nearMissPercent') {
+        st.nearMissPercent = Number(t.value);
+        $('nm-value').textContent = t.value + ' %';
+      } else if (key === 'returnDelayWin' || key === 'returnDelayLose') {
+        var v = Number(t.value);
+        if (v >= 2 && v <= 120) st[key] = v;
+      }
+      App.save();
+    } else if (t.dataset.pref === 'volume') {
+      App.setVolume(Number(t.value));
+      $('vol-value').textContent = Math.round(Number(t.value) * 100) + ' %';
+    } else if (t.dataset.pref === 'muted') {
+      App.setMuted(t.checked);
+    }
+  }
+
+  function changePin() {
+    UI.pinPad('Code PIN actuel', 'Saisissez le code PIN actuel.').then(function (pin) {
+      if (pin == null) return;
+      if (!App.checkPin(pin)) { UI.toast('Code PIN incorrect.', 'error'); return; }
+      App.state.pinHash = null;
+      App.createPin().then(function (ok) {
+        if (!ok) {
+          // Abandon : on remet l'ancien code.
+          App.setPin(pin);
+          UI.toast('Code PIN inchangé.', '');
+        }
+      });
+    });
+  }
+
+  function resetAll() {
+    var keep = $('reset-keep') && $('reset-keep').checked;
+    var askPin = App.isDemo()
+      ? Promise.resolve(true)
+      : UI.pinPad('Réinitialisation complète', 'Saisissez le code PIN pour continuer.').then(function (pin) {
+        if (pin == null) return false;
+        if (!App.checkPin(pin)) { UI.toast('Code PIN incorrect.', 'error'); return false; }
+        return true;
+      });
+    askPin.then(function (ok) {
+      if (!ok) return false;
+      return UI.confirm('Réinitialisation complète (1/2)',
+        'Le tirage, les ' + Object.keys(App.state.plays).length + ' partie(s) jouée(s) et le journal seront <strong>définitivement effacés</strong>' +
+        (keep ? ' (la liste des lots sera conservée)' : '') + '.<br>Avez-vous téléchargé une sauvegarde ?', 'Continuer', true);
+    }).then(function (ok) {
+      if (!ok) return false;
+      return UI.modal({
+        title: 'Réinitialisation complète (2/2)',
+        body: '<p>Dernière confirmation : tapez <strong>EFFACER</strong> ci-dessous.</p><input type="text" class="confirm-input" autofocus autocomplete="off">',
+        buttons: [{ label: 'Annuler', value: null }, { label: 'Tout effacer', value: 'go', kind: 'danger' }],
+        enterValue: 'go',
+        getValue: function (v, box) {
+          if (box.querySelector('.confirm-input').value.trim().toUpperCase() !== 'EFFACER') {
+            box.setError('Tapez EFFACER pour confirmer.');
+            return undefined;
+          }
+          return true;
+        }
+      });
+    }).then(function (ok) {
+      if (ok !== true) return;
+      App.resetAll(keep);
+      Admin.draft = null;
+      Admin.dirty = false;
+      Admin.lastVerify = null;
+      UI.toast('Réinitialisation effectuée.', 'success');
+      renderTab();
+    });
+  }
+
+  /* ----------------------- Sauvegarde / import -------------------------- */
+
+  function backup() {
+    App.downloadBackup();
+    UI.toast('Sauvegarde téléchargée. Copiez-la sur une clé USB ou un téléphone.', 'success');
+    Admin.render();
+  }
+
+  function importFile(expectedKind) {
+    Store.pickTextFile('.json,application/json').then(function (file) {
+      var parsed = App.parseImport(file.text);
+      if (!parsed.ok) { UI.alert('Import impossible', esc(parsed.error)); return; }
+      var lines = '<p><strong>' + (parsed.kind === 'tirage' ? 'Tirage' : 'Sauvegarde') + '</strong> : ' + esc(parsed.summary) + '.</p>';
+      if (parsed.kind !== expectedKind) {
+        lines += '<p class="muted">' + (parsed.kind === 'tirage' ? 'Ce fichier est un export de tirage : les parties jouées seront remises à zéro.' : 'Ce fichier est une sauvegarde complète : les parties et le journal seront restaurés.') + '</p>';
+      }
+      if (parsed.fileMode && parsed.fileMode !== App.mode) {
+        lines += '<div class="alert alert-warn">⚠ Ce fichier provient du ' + (parsed.fileMode === 'demo' ? 'mode démo' : 'mode soirée') + '.</div>';
+      }
+      if (parsed.warnings.length) {
+        lines += '<div class="alert alert-danger">⚠ Contrôles en échec :<br>' + parsed.warnings.map(esc).join('<br>') + '</div>';
+      }
+      lines += '<p>Les données actuelles' + (App.isDemo() ? ' de la démo' : ' de la soirée') + ' (' + Object.keys(App.state.plays).length +
+        ' partie(s) jouée(s)) seront <strong>remplacées</strong>. Le tirage importé sera verrouillé.</p>';
+      return UI.confirm('Importer « ' + esc(file.name) + ' » ?', lines, 'Importer', parsed.warnings.length > 0).then(function (ok) {
+        if (!ok) return;
+        App.applyImport(parsed, file.name);
+        Admin.draft = null;
+        Admin.dirty = false;
+        Admin.lastVerify = null;
+        UI.toast('Import réussi.', 'success');
+        Admin.render();
+      });
+    }).catch(function () { /* sélection annulée */ });
+  }
+
+  /* -------------------------- Vue imprimable ---------------------------- */
+
+  function renderPrint() {
+    var s = App.state;
+    var d = s.draw;
+    var full = $('print-full').checked;
+    if (!d) { $('print-page').innerHTML = '<p>Aucun tirage.</p>'; return; }
+    var groups = Draw.winnersByPrize(s.config, d);
+    var html = '<header class="print-header"><h1>' + esc(s.title) + (App.isDemo() ? ' — DÉMO' : '') + '</h1>' +
+      '<h2>Plan B — Liste des numéros gagnants par lot</h2>' +
+      '<p>Tickets numérotés de 1 à <strong>' + d.ticketCount + '</strong> · Seed : <code>' + esc(d.seed) + '</code> · Empreinte : <code>' + esc(d.fingerprint) + '</code><br>' +
+      'Tirage généré le ' + esc(UI.formatDateTime(d.generatedAt)) + (d.locked ? ' · verrouillé le ' + esc(UI.formatDateTime(d.lockedAt)) : ' · <strong>NON VERROUILLÉ</strong>') +
+      ' · Imprimé le ' + esc(UI.formatDateTime(new Date().toISOString())) + '</p></header>';
+
+    html += '<p class="print-howto"><strong>Mode d’emploi en cas de panne :</strong> chercher le numéro du ticket ci-dessous. S’il apparaît, il gagne le lot indiqué (cocher la case quand le lot est remis). Sinon, le ticket est perdant. ' +
+      'Les tickets marqués « ✔ joué » avaient déjà joué au moment de l’impression.</p>';
+
+    groups.forEach(function (g) {
+      html += '<section class="print-prize"><h3>' + UI.symbolHtml(g.prize.symbol, 'sym-mini') + ' ' + esc(g.prize.name) +
+        ' <span class="muted">(' + g.tickets.length + ' gagnant' + (g.tickets.length > 1 ? 's' : '') + ')</span></h3><ul class="print-tickets">';
+      g.tickets.forEach(function (t) {
+        var played = s.plays[String(t)];
+        html += '<li><span class="box">☐</span> <strong>' + t + '</strong>' + (played ? ' <em>✔ joué</em>' : '') + '</li>';
+      });
+      html += '</ul></section>';
+    });
+    if (!groups.length) html += '<p>Aucun lot : tous les tickets sont perdants.</p>';
+    html += '<p><strong>Tous les autres numéros sont perdants.</strong></p>';
+
+    if (full) {
+      html += '<section class="print-full"><h3>Tableau complet des tickets</h3><div class="print-grid">';
+      for (var t = 1; t <= d.ticketCount; t++) {
+        var p = App.getPrize(d.assignments[String(t)]);
+        html += '<div class="pg-cell' + (p ? ' pg-win' : '') + '"><strong>' + t + '</strong> ' + (p ? UI.symbolHtml(p.symbol, 'sym-mini') + ' ' + esc(p.name) : '–') +
+          (s.plays[String(t)] ? ' ✔' : '') + '</div>';
+      }
+      html += '</div></section>';
+    }
+    $('print-page').innerHTML = html;
+  }
+
+  function showPrint() {
+    renderPrint();
+    App.showScreen('print');
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------------------------- Rendu général --------------------------- */
+
+  function renderTab() {
+    var content = $('admin-content');
+    var html;
+    switch (Admin.tab) {
+      case 'config': html = renderConfig(); break;
+      case 'draw': html = renderDraw(); break;
+      case 'log': html = renderLog(); break;
+      case 'settings': html = renderSettings(); break;
+      default: html = renderDashboard();
+    }
+    content.innerHTML = html;
+    document.querySelectorAll('#admin-tabs [data-tab]').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.tab === Admin.tab);
+      b.setAttribute('aria-selected', b.dataset.tab === Admin.tab ? 'true' : 'false');
+    });
+    if (Admin.tab === 'config') renderConfigValidation();
+    renderAlerts();
+  }
+
+  Admin.render = function () { renderTab(); };
+
+  function onAction(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn || btn.disabled) return;
+    var a = btn.dataset.action;
+    switch (a) {
+      case 'backup': backup(); break;
+      case 'restore': importFile('sauvegarde'); break;
+      case 'import': importFile('tirage'); break;
+      case 'print': showPrint(); break;
+      case 'verify': runVerify(); break;
+      case 'fullscreen': App.toggleFullscreen(); break;
+      case 'add-prize': addPrize(); break;
+      case 'del-prize': {
+        var idx = Number(btn.closest('.prize-row').dataset.index);
+        Admin.draft.prizes.splice(idx, 1);
+        Admin.dirty = true;
+        renderTab();
+        break;
+      }
+      case 'save-config': saveConfig(); break;
+      case 'discard-config':
+        Admin.draft = null;
+        Admin.dirty = false;
+        renderTab();
+        break;
+      case 'new-seed': {
+        var seed = Draw.randomSeed();
+        $('seed-input').value = seed;
+        App.state.seedDraft = seed;
+        App.save();
+        break;
+      }
+      case 'generate': generate(); break;
+      case 'lock': lockDraw(); break;
+      case 'unlock-demo':
+        App.unlockDemo();
+        UI.toast('Démo déverrouillée : vous pouvez modifier les lots et régénérer.', 'success');
+        renderTab();
+        break;
+      case 'export-json': App.exportDrawJson(); break;
+      case 'export-csv': App.exportDrawCsv(); break;
+      case 'export-log-csv': App.exportLogCsv(); break;
+      case 'export-log-json': App.exportLogJson(); break;
+      case 'filter': Admin.drawFilter = btn.dataset.filter; renderTab(); break;
+      case 'cancel-play': cancelPlay(btn.dataset.ticket || ($('cancel-ticket') && $('cancel-ticket').value)); break;
+      case 'test-sound': Sound.unlock(); Sound[btn.dataset.sound](0); break;
+      case 'change-pin': changePin(); break;
+      case 'reset-all': resetAll(); break;
+      case 'demo-start':
+        confirmLeaveDraft().then(function (ok) {
+          if (!ok) return;
+          App.loadMode('demo');
+          Admin.tab = 'dashboard';
+          App.showScreen('game');
+          UI.toast('Mode démo activé.', 'success');
+        });
+        break;
+      case 'demo-reset':
+        App.resetDemo();
+        Admin.draft = null; Admin.dirty = false; Admin.lastVerify = null;
+        UI.toast('Démo réinitialisée.', 'success');
+        renderTab();
+        break;
+      case 'demo-quit':
+        App.loadMode('real');
+        Admin.draft = null; Admin.dirty = false; Admin.lastVerify = null;
+        Admin.tab = 'dashboard';
+        App.showScreen('game');
+        UI.toast('Retour aux données de la soirée.', 'success');
+        break;
+    }
+  }
+
+  function confirmLeaveDraft() {
+    if (!Admin.dirty) return Promise.resolve(true);
+    return UI.confirm('Modifications non enregistrées', 'Les modifications des lots n’ont pas été enregistrées. Les abandonner ?', 'Abandonner', true)
+      .then(function (ok) {
+        if (ok) { Admin.draft = null; Admin.dirty = false; }
+        return ok;
+      });
+  }
+
+  Admin.init = function () {
+    $('admin-tabs').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-tab]');
+      if (!b) return;
+      Admin.tab = b.dataset.tab;
+      Admin.lastVerify = Admin.tab === 'draw' || Admin.tab === 'dashboard' ? Admin.lastVerify : null;
+      renderTab();
+    });
+    var content = $('admin-content');
+    content.addEventListener('click', onAction);
+    $('admin-alerts').addEventListener('click', onAction);
+    content.addEventListener('input', function (e) {
+      if (Admin.tab === 'config') onConfigInput(e);
+      else if (Admin.tab === 'settings' && e.target.type !== 'checkbox') onSettingInput(e);
+      else if (e.target.id === 'draw-search') {
+        Admin.drawSearch = e.target.value.replace(/\D/g, '');
+        var pos = e.target.selectionStart;
+        renderTab();
+        var s = $('draw-search');
+        s.focus();
+        try { s.setSelectionRange(pos, pos); } catch (err) { /* type search */ }
+      } else if (e.target.id === 'seed-input') {
+        App.state.seedDraft = e.target.value;
+        Store.saveState(App.mode, App.state);
+      }
+    });
+    content.addEventListener('change', function (e) {
+      if (Admin.tab === 'config' && e.target.tagName === 'SELECT') onConfigInput(e);
+      else if (Admin.tab === 'settings' && e.target.type === 'checkbox' && e.target.id !== 'reset-keep') onSettingInput(e);
+    });
+
+    $('admin-back').addEventListener('click', function () {
+      confirmLeaveDraft().then(function (ok) { if (ok) App.showScreen('game'); });
+    });
+    $('admin-backup').addEventListener('click', backup);
+    $('print-go').addEventListener('click', function () { window.print(); });
+    $('print-full').addEventListener('change', renderPrint);
+    $('print-back').addEventListener('click', function () { App.showScreen('admin'); });
+  };
+
+  window.Admin = Admin;
+})();
+
+</script>
+  <script>
+/* ---- js/app.js ---- */
+/*
+ * app.js — Cœur de l'application : état, modes (soirée / démo),
+ * actions (jouer, annuler, tirage, verrouillage, import/export),
+ * navigation entre les écrans, plein écran et maintien de l'écran allumé.
+ *
+ * Modèle de données (un objet par mode, sauvegardé dans localStorage) :
+ * {
+ *   version, title,
+ *   config:   { ticketCount, prizes: [{ id, name, quantity, symbol }] },
+ *   seedDraft: seed proposé avant génération,
+ *   draw:     null | { seed, ticketCount, assignments: { "12": "lot-1" }, fingerprint,
+ *                      generatedAt, locked, lockedAt },
+ *   plays:    { "12": { time, prizeId } },
+ *   log:      [{ time, type, ticket, prizeId, prizeName, message }],
+ *   settings: { nearMissEnabled, nearMissPercent, returnDelayWin, returnDelayLose },
+ *   pinHash, lastBackupAt, nextPrizeId
+ * }
+ */
+(function () {
+  'use strict';
+
+  var FORMAT = 'tombola-casino';
+  var STATE_VERSION = 1;
+
+  var App = {
+    mode: 'real',
+    state: null,
+    prefs: { volume: 0.7, muted: false },
+    lastSaveOk: true,
+    listeners: []
+  };
+
+  /* ------------------------------ État ---------------------------------- */
+
+  function defaultSettings() {
+    return { nearMissEnabled: true, nearMissPercent: 30, returnDelayWin: 15, returnDelayLose: 7 };
+  }
+
+  function emptyState() {
+    return {
+      version: STATE_VERSION,
+      title: 'Grande Tombola du Nouvel An',
+      config: { ticketCount: 200, prizes: [] },
+      seedDraft: Draw.randomSeed(),
+      draw: null,
+      plays: {},
+      log: [],
+      settings: defaultSettings(),
+      pinHash: null,
+      lastBackupAt: null,
+      playsAtLastBackup: 0,
+      nextPrizeId: 1
+    };
+  }
+
+  // Lots fictifs pour présenter le concept à l'organisation.
+  function demoState() {
+    var s = emptyState();
+    s.title = 'Tombola du Nouvel An — Démo';
+    s.config = {
+      ticketCount: 100,
+      prizes: [
+        { id: 'lot-1', name: 'Week-end pour deux', quantity: 1, symbol: 'seven' },
+        { id: 'lot-2', name: 'Panier garni du terroir', quantity: 2, symbol: 'diamond' },
+        { id: 'lot-3', name: 'Bouteille de champagne', quantity: 4, symbol: 'champagne' },
+        { id: 'lot-4', name: 'Bon d’achat 20 CHF', quantity: 6, symbol: 'bell' },
+        { id: 'lot-5', name: 'Boîte de chocolats', quantity: 10, symbol: 'cherry' }
+      ]
+    };
+    s.nextPrizeId = 6;
+    s.settings.nearMissPercent = 35;
+    s.seedDraft = 'DEMO-NOUVEL-AN';
+    var draw = Draw.generateDraw(s.config, s.seedDraft);
+    var now = new Date().toISOString();
+    draw.generatedAt = now;
+    draw.locked = true;
+    draw.lockedAt = now;
+    s.draw = draw;
+    s.log.push({ time: now, type: 'systeme', message: 'Démo chargée (100 tickets, 5 lots, seed DEMO-NOUVEL-AN)' });
+    return s;
+  }
+
+  // Complète un état chargé (anciennes versions, champs manquants).
+  function normalize(s) {
+    var base = emptyState();
+    if (!s || typeof s !== 'object') return base;
+    var out = {};
+    Object.keys(base).forEach(function (k) { out[k] = s[k] !== undefined ? s[k] : base[k]; });
+    out.settings = Object.assign(defaultSettings(), s.settings || {});
+    out.config = out.config && typeof out.config === 'object' ? out.config : base.config;
+    if (!Array.isArray(out.config.prizes)) out.config.prizes = [];
+    out.plays = out.plays && typeof out.plays === 'object' ? out.plays : {};
+    out.log = Array.isArray(out.log) ? out.log : [];
+    var maxId = 0;
+    out.config.prizes.forEach(function (p) {
+      var m = /(\d+)$/.exec(p.id || '');
+      if (m) maxId = Math.max(maxId, Number(m[1]));
+    });
+    out.nextPrizeId = Math.max(Number(out.nextPrizeId) || 1, maxId + 1);
+    return out;
+  }
+
+  App.save = function () {
+    App.lastSaveOk = Store.saveState(App.mode, App.state);
+    App.emit();
+    return App.lastSaveOk;
+  };
+
+  App.onChange = function (fn) { App.listeners.push(fn); };
+  App.emit = function () { App.listeners.forEach(function (fn) { fn(); }); };
+
+  App.isDemo = function () { return App.mode === 'demo'; };
+
+  App.addLog = function (type, data) {
+    var entry = Object.assign({ time: new Date().toISOString(), type: type }, data || {});
+    App.state.log.push(entry);
+    return entry;
+  };
+
+  App.getPrize = function (id) { return Draw.findPrize(App.state.config, id); };
+
+  // 'unconfigured' (aucun tirage) | 'unlocked' (tirage non verrouillé) | 'ready'
+  App.status = function () {
+    var d = App.state.draw;
+    if (!d) return 'unconfigured';
+    if (!d.locked) return 'unlocked';
+    return 'ready';
+  };
+
+  App.isLocked = function () { return !!(App.state.draw && App.state.draw.locked); };
+
+  /* ---------------------------- Partie ---------------------------------- */
+
+  /**
+   * Vérifie un numéro avant de jouer.
+   * Retourne { ok, code: 'notready'|'invalid'|'played', message }.
+   */
+  App.checkTicket = function (value) {
+    if (App.status() !== 'ready') {
+      return { ok: false, code: 'notready', message: 'La machine n’est pas encore prête.' };
+    }
+    var n = App.state.draw.ticketCount;
+    var str = String(value == null ? '' : value).trim();
+    var num = Number(str);
+    if (!str || !/^\d+$/.test(str) || num < 1 || num > n) {
+      return { ok: false, code: 'invalid', message: 'Numéro invalide : entrez un numéro entre 1 et ' + n + '.' };
+    }
+    if (App.state.plays[String(num)]) {
+      return { ok: false, code: 'played', ticket: num, message: 'Ce ticket a déjà joué !' };
+    }
+    return { ok: true, ticket: num };
+  };
+
+  /**
+   * Enregistre la partie (AVANT l'animation, pour qu'un rechargement de
+   * page pendant la rotation ne permette pas de rejouer) et renvoie les
+   * symboles à afficher. force = rejouer (démo uniquement).
+   */
+  App.play = function (value, force) {
+    var check = App.checkTicket(value);
+    if (!check.ok && !(force && App.isDemo() && check.code === 'played')) return { ok: false, check: check };
+    var ticket = check.ticket;
+    var draw = App.state.draw;
+    var prizeId = draw.assignments[String(ticket)] || null;
+    var prize = App.getPrize(prizeId);
+    var reel = Draw.reelSymbols(App.state.config, draw.seed, ticket, prizeId, App.state.settings);
+    var time = new Date().toISOString();
+    App.state.plays[String(ticket)] = { time: time, prizeId: prizeId };
+    App.addLog('partie', {
+      ticket: ticket,
+      prizeId: prizeId,
+      prizeName: prize ? prize.name : null,
+      message: (prize ? 'Gagné : ' + prize.name : 'Perdu') + (force ? ' (rejoué en démo)' : '')
+    });
+    App.save();
+    return { ok: true, ticket: ticket, prize: prize, reel: reel };
+  };
+
+  // Annule une partie (erreur de saisie) : le ticket redevient « non joué ».
+  App.cancelPlay = function (ticket, reason) {
+    var key = String(ticket);
+    var play = App.state.plays[key];
+    if (!play) return false;
+    var prize = App.getPrize(play.prizeId);
+    delete App.state.plays[key];
+    App.addLog('annulation', {
+      ticket: Number(ticket),
+      prizeId: play.prizeId,
+      prizeName: prize ? prize.name : null,
+      message: 'Partie annulée (jouée à ' + UI.formatTime(play.time) + ')' + (reason ? ' — ' + reason : '')
+    });
+    App.save();
+    return true;
+  };
+
+  /* ------------------------- Statistiques ------------------------------- */
+
+  App.stats = function () {
+    var s = App.state;
+    var n = s.draw ? s.draw.ticketCount : s.config.ticketCount;
+    var played = Object.keys(s.plays).length;
+    var wonByPrize = {};
+    var wins = [];
+    Object.keys(s.plays).forEach(function (t) {
+      var pid = s.plays[t].prizeId;
+      if (pid) {
+        wonByPrize[pid] = (wonByPrize[pid] || 0) + 1;
+        wins.push({ ticket: Number(t), prizeId: pid, time: s.plays[t].time });
+      }
+    });
+    wins.sort(function (a, b) { return a.time < b.time ? 1 : -1; });
+    var prizes = s.config.prizes.map(function (p) {
+      var won = wonByPrize[p.id] || 0;
+      return { prize: p, won: won, remaining: p.quantity - won };
+    });
+    return { total: n, played: played, remaining: n - played, prizes: prizes, wins: wins };
+  };
+
+  /* ---------------------- Configuration & tirage ------------------------ */
+
+  App.newPrizeId = function () { return 'lot-' + (App.state.nextPrizeId++); };
+
+  // Remplace la configuration (refusé si verrouillé). Invalide le tirage existant.
+  App.setConfig = function (config) {
+    if (App.isLocked()) throw new Error('Le tirage est verrouillé : la configuration ne peut plus être modifiée.');
+    App.state.config = config;
+    if (App.state.draw) {
+      App.state.draw = null;
+      App.addLog('systeme', { message: 'Configuration modifiée : tirage précédent effacé' });
+    }
+    App.save();
+  };
+
+  App.generate = function (seed) {
+    if (App.isLocked()) throw new Error('Le tirage est verrouillé.');
+    if (Object.keys(App.state.plays).length) throw new Error('Des parties ont déjà été jouées.');
+    var draw = Draw.generateDraw(App.state.config, seed);
+    draw.generatedAt = new Date().toISOString();
+    draw.locked = false;
+    draw.lockedAt = null;
+    App.state.draw = draw;
+    App.state.seedDraft = draw.seed;
+    App.addLog('tirage', { message: 'Tirage généré — seed « ' + draw.seed + ' », empreinte ' + draw.fingerprint });
+    App.save();
+    return draw;
+  };
+
+  App.lock = function () {
+    if (!App.state.draw) throw new Error('Générez d’abord le tirage.');
+    App.state.draw.locked = true;
+    App.state.draw.lockedAt = new Date().toISOString();
+    App.addLog('verrouillage', { message: 'Tirage verrouillé — empreinte ' + App.state.draw.fingerprint });
+    App.save();
+  };
+
+  // Démo uniquement : permet de montrer la configuration et le tirage.
+  App.unlockDemo = function () {
+    if (!App.isDemo() || !App.state.draw) return;
+    App.state.draw.locked = false;
+    App.state.plays = {};
+    App.addLog('systeme', { message: 'Démo : tirage déverrouillé, parties effacées' });
+    App.save();
+  };
+
+  App.verify = function () {
+    return Draw.verifyDraw(App.state.config, App.state.draw, App.state.plays, App.state.settings);
+  };
+
+  // Réinitialisation complète du mode courant (le PIN est conservé).
+  App.resetAll = function (keepConfig) {
+    var old = App.state;
+    var s = emptyState();
+    s.pinHash = old.pinHash;
+    s.title = old.title;
+    s.settings = old.settings;
+    if (keepConfig) {
+      s.config = old.config;
+      s.nextPrizeId = old.nextPrizeId;
+    }
+    App.state = s;
+    App.addLog('systeme', { message: 'Réinitialisation complète' + (keepConfig ? ' (lots conservés)' : '') });
+    App.save();
+  };
+
+  /* --------------------------- Code PIN --------------------------------- */
+
+  function pinHash(pin) { return Draw.hashString('pin|tombola|' + pin); }
+  App.hasPin = function () { return !!App.state.pinHash; };
+  App.checkPin = function (pin) { return !!App.state.pinHash && pinHash(pin) === App.state.pinHash; };
+  App.setPin = function (pin) {
+    App.state.pinHash = pinHash(pin);
+    App.addLog('systeme', { message: 'Code PIN défini' });
+    App.save();
+  };
+
+  /* ------------------------------ Modes --------------------------------- */
+
+  App.loadMode = function (mode) {
+    App.mode = mode === 'demo' ? 'demo' : 'real';
+    Store.setMode(App.mode);
+    var loaded = Store.loadState(App.mode);
+    if (loaded) {
+      App.state = normalize(loaded);
+    } else {
+      App.state = App.mode === 'demo' ? demoState() : emptyState();
+      App.save();
+    }
+    document.body.classList.toggle('is-demo', App.isDemo());
+    App.emit();
+  };
+
+  App.resetDemo = function () {
+    if (!App.isDemo()) return;
+    App.state = demoState();
+    App.save();
+  };
+
+  /* ------------------------- Export / import ---------------------------- */
+
+  function drawPayload() {
+    var s = App.state;
+    return {
+      format: FORMAT,
+      kind: 'tirage',
+      version: STATE_VERSION,
+      exportedAt: new Date().toISOString(),
+      mode: App.mode,
+      title: s.title,
+      config: s.config,
+      draw: s.draw,
+      winners: Draw.winnersByPrize(s.config, s.draw).map(function (g) {
+        return { lot: g.prize.name, symbole: Draw.getSymbol(g.prize.symbol).name, tickets: g.tickets };
+      })
+    };
+  }
+
+  function backupPayload() {
+    var s = JSON.parse(JSON.stringify(App.state));
+    delete s.pinHash; // le PIN reste propre à l'appareil
+    return {
+      format: FORMAT,
+      kind: 'sauvegarde',
+      version: STATE_VERSION,
+      exportedAt: new Date().toISOString(),
+      mode: App.mode,
+      state: s
+    };
+  }
+
+  function prefix() { return App.isDemo() ? 'DEMO_' : ''; }
+
+  function csvCell(v) {
+    var s = String(v == null ? '' : v);
+    return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  // CSV au format « Excel français » : séparateur « ; » et BOM UTF-8.
+  function toCsv(rows) {
+    return '﻿' + rows.map(function (r) { return r.map(csvCell).join(';'); }).join('\r\n') + '\r\n';
+  }
+
+  App.exportDrawJson = function () {
+    Store.download(prefix() + 'tirage_' + Store.fileStamp() + '.json', JSON.stringify(drawPayload(), null, 2), 'application/json');
+  };
+
+  App.exportDrawCsv = function () {
+    var s = App.state;
+    var rows = [['Ticket', 'Résultat', 'Symbole', 'Joué', 'Heure de jeu']];
+    for (var t = 1; t <= s.draw.ticketCount; t++) {
+      var p = App.getPrize(s.draw.assignments[String(t)]);
+      var play = s.plays[String(t)];
+      rows.push([t, p ? p.name : 'perdu', p ? Draw.getSymbol(p.symbol).name : '', play ? 'oui' : 'non', play ? UI.formatDateTime(play.time) : '']);
+    }
+    Store.download(prefix() + 'tirage_' + Store.fileStamp() + '.csv', toCsv(rows), 'text/csv');
+  };
+
+  App.exportLogCsv = function () {
+    var rows = [['Date et heure', 'Type', 'Ticket', 'Lot', 'Détail']];
+    App.state.log.forEach(function (e) {
+      rows.push([UI.formatDateTime(e.time), e.type, e.ticket || '', e.prizeName || '', e.message || '']);
+    });
+    Store.download(prefix() + 'journal_' + Store.fileStamp() + '.csv', toCsv(rows), 'text/csv');
+  };
+
+  App.exportLogJson = function () {
+    var payload = { format: FORMAT, kind: 'journal', exportedAt: new Date().toISOString(), mode: App.mode, log: App.state.log };
+    Store.download(prefix() + 'journal_' + Store.fileStamp() + '.json', JSON.stringify(payload, null, 2), 'application/json');
+  };
+
+  App.downloadBackup = function () {
+    Store.download(prefix() + 'sauvegarde_tombola_' + Store.fileStamp() + '.json', JSON.stringify(backupPayload(), null, 2), 'application/json');
+    App.state.lastBackupAt = new Date().toISOString();
+    App.state.playsAtLastBackup = Object.keys(App.state.plays).length;
+    App.save();
+  };
+
+  // Faut-il rappeler de faire une sauvegarde ? (parties jouées depuis la dernière)
+  App.backupReminder = function () {
+    var played = Object.keys(App.state.plays).length;
+    var last = App.state.lastBackupAt;
+    if (!App.state.draw) return null;
+    if (!last) return 'Aucune sauvegarde sur fichier n’a encore été faite.';
+    var since = played - (App.state.playsAtLastBackup || 0);
+    var minutes = Math.round((Date.now() - new Date(last).getTime()) / 60000);
+    if (since > 0 && (minutes >= 30 || since >= 20)) {
+      return since + ' partie(s) jouée(s) depuis la dernière sauvegarde (il y a ' + minutes + ' min).';
+    }
+    return null;
+  };
+
+  /**
+   * Analyse un fichier importé (tirage ou sauvegarde).
+   * Retourne { ok, error } ou { ok, kind, state, warnings, summary }.
+   */
+  App.parseImport = function (text) {
+    var data;
+    try { data = JSON.parse(text); } catch (e) { return { ok: false, error: 'Ce fichier n’est pas un fichier JSON valide.' }; }
+    if (!data || data.format !== FORMAT) return { ok: false, error: 'Ce fichier ne provient pas de la tombola casino.' };
+
+    var src;
+    if (data.kind === 'tirage') {
+      src = { title: data.title, config: data.config, draw: data.draw, plays: {}, log: [] };
+    } else if (data.kind === 'sauvegarde' && data.state) {
+      src = data.state;
+    } else {
+      return { ok: false, error: 'Type de fichier non reconnu (attendu : tirage ou sauvegarde).' };
+    }
+    var v = Draw.validateConfig(src.config);
+    if (!v.ok) return { ok: false, error: 'Configuration invalide dans le fichier : ' + v.errors.join(' ') };
+    if (!src.draw || !src.draw.assignments || !src.draw.seed) return { ok: false, error: 'Le fichier ne contient pas de tirage.' };
+
+    var state = normalize(src);
+    var warnings = [];
+    var check = Draw.verifyDraw(state.config, state.draw, state.plays, state.settings);
+    check.checks.forEach(function (c) { if (!c.ok) warnings.push(c.label + (c.detail ? ' (' + c.detail + ')' : '')); });
+    return {
+      ok: true,
+      kind: data.kind,
+      fileMode: data.mode,
+      state: state,
+      warnings: warnings,
+      summary: state.config.ticketCount + ' tickets, ' + state.config.prizes.length + ' lot(s), seed « ' + state.draw.seed +
+        ' », ' + Object.keys(state.plays).length + ' partie(s) jouée(s)'
+    };
+  };
+
+  App.applyImport = function (parsed, fileName) {
+    var state = parsed.state;
+    state.pinHash = App.state.pinHash; // on garde le PIN de cet appareil
+    if (!state.draw.locked) {
+      state.draw.locked = true;
+      state.draw.lockedAt = new Date().toISOString();
+    }
+    App.state = state;
+    App.addLog(parsed.kind === 'tirage' ? 'import' : 'restauration', {
+      message: (parsed.kind === 'tirage' ? 'Tirage importé' : 'Sauvegarde restaurée') + ' depuis « ' + fileName + ' »' +
+        (parsed.warnings.length ? ' — AVERTISSEMENTS : ' + parsed.warnings.join(' ; ') : '')
+    });
+    App.save();
+  };
+
+  /* ---------------------------- Écrans ---------------------------------- */
+
+  App.screen = 'game';
+  App.showScreen = function (name) {
+    App.screen = name;
+    ['game', 'admin', 'print'].forEach(function (s) {
+      document.getElementById('screen-' + s).hidden = s !== name;
+    });
+    document.body.setAttribute('data-screen', name);
+    if (name === 'game') SlotGame.onShow();
+    if (name === 'admin') Admin.render();
+  };
+
+  // Accès à l'administration : PIN obligatoire pour la vraie soirée.
+  App.requestAdmin = function () {
+    if (App.isDemo()) { App.showScreen('admin'); return; }
+    if (!App.hasPin()) {
+      createPin().then(function (ok) { if (ok) App.showScreen('admin'); });
+      return;
+    }
+    UI.pinPad('Administration', 'Entrez le code PIN de l’organisateur.').then(function (pin) {
+      if (pin == null) return;
+      if (App.checkPin(pin)) App.showScreen('admin');
+      else { Sound.error(); UI.toast('Code PIN incorrect.', 'error'); }
+    });
+  };
+
+  function createPin() {
+    return UI.pinPad('Créer le code PIN', 'Première configuration : choisissez un code PIN (4 à 8 chiffres). Il protégera l’administration pendant la soirée. <strong>Notez-le !</strong>')
+      .then(function (pin1) {
+        if (pin1 == null) return false;
+        return UI.pinPad('Confirmer le code PIN', 'Saisissez à nouveau le même code.').then(function (pin2) {
+          if (pin2 == null) return false;
+          if (pin1 !== pin2) {
+            return UI.alert('Codes différents', 'Les deux codes ne correspondent pas. Recommencez.').then(function () { return false; });
+          }
+          App.setPin(pin1);
+          UI.toast('Code PIN enregistré.', 'success');
+          return true;
+        });
+      });
+  }
+  App.createPin = createPin;
+
+  /* -------------------- Plein écran & écran allumé ---------------------- */
+
+  var wakeLock = null;
+  App.keepAwake = function () {
+    if (!('wakeLock' in navigator) || wakeLock) return;
+    navigator.wakeLock.request('screen').then(function (lock) {
+      wakeLock = lock;
+      lock.addEventListener('release', function () { wakeLock = null; });
+    }).catch(function () { /* non disponible : sans conséquence */ });
+  };
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') App.keepAwake();
+  });
+
+  App.isFullscreen = function () {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  };
+  App.toggleFullscreen = function () {
+    var d = document.documentElement;
+    try {
+      if (App.isFullscreen()) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else if (d.requestFullscreen) {
+        d.requestFullscreen().catch(function () { UI.toast('Plein écran refusé par le navigateur.', 'error'); });
+      } else if (d.webkitRequestFullscreen) {
+        d.webkitRequestFullscreen();
+      } else {
+        UI.toast('Plein écran non disponible : utilisez le menu du navigateur.', 'error');
+      }
+    } catch (e) {
+      UI.toast('Plein écran non disponible.', 'error');
+    }
+    App.keepAwake();
+  };
+
+  /* -------------------------- Préférences ------------------------------- */
+
+  App.setVolume = function (v) {
+    App.prefs.volume = v;
+    Sound.setVolume(v);
+    Store.savePrefs(App.prefs);
+  };
+  App.setMuted = function (m) {
+    App.prefs.muted = m;
+    Sound.setMuted(m);
+    Store.savePrefs(App.prefs);
+    App.emit();
+  };
+
+  /* ---------------------------- Démarrage ------------------------------- */
+
+  App.init = function () {
+    App.prefs = Object.assign({ volume: 0.7, muted: false }, Store.loadPrefs());
+    Sound.setVolume(App.prefs.volume);
+    Sound.setMuted(App.prefs.muted);
+
+    if (!Store.isAvailable()) document.body.classList.add('no-storage');
+
+    App.loadMode(Store.getMode());
+    SlotGame.init();
+    Admin.init();
+    App.showScreen('game');
+
+    // Avertissement en cas de fermeture / rechargement pendant la soirée.
+    window.addEventListener('beforeunload', function (e) {
+      if (!App.isDemo() && App.isLocked()) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    });
+
+    // Signale un échec d'écriture (quota, stockage bloqué en cours de route).
+    App.onChange(function () {
+      document.body.classList.toggle('save-failed', Store.isAvailable() && !App.lastSaveOk);
+    });
+
+    App.keepAwake();
+  };
+
+  window.App = App;
+  document.addEventListener('DOMContentLoaded', App.init);
+})();
+
+</script>
+</body>
+</html>

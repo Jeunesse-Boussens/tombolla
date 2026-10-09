@@ -22,7 +22,12 @@ Utilisez dans ce cas **`tombola-casino.html`** : c'est le site complet **dans un
 > ⚠ Selon la façon dont le fichier est ouvert (adresse commençant par `content://`), le navigateur du téléphone peut refuser la sauvegarde automatique : un **bandeau rouge** l'indique.
 > Ça suffit pour une démo. Pour la vraie soirée, utilisez de préférence un **ordinateur portable** (ouverture en `file://`, la sauvegarde automatique fonctionne), ou publiez le site sur GitHub Pages pour l'ouvrir en `https://`.
 
-Après toute modification du code : `node tools/build-single.js` régénère `tombola-casino.html`.
+Après toute modification du code : `node tools/build-single.js` régénère `tombola-casino.html` et `docs/index.html`.
+
+### Site internet (GitHub Pages)
+
+*Settings → Pages → Deploy from a branch* : la source peut être **`/ (root)`** (sert `index.html`) **ou `/docs`** (sert `docs/index.html`, la version en un seul fichier). Les deux donnent le même site à l'adresse `https://<compte>.github.io/casinonouvelan/`.
+Les données (tirage, parties, PIN) restent dans le navigateur de chaque appareil, jamais en ligne. Ne publiez jamais vos exports de tirage ou sauvegardes dans le dépôt (il est public).
 
 Boutons discrets en haut à droite de la machine : 🔊 son · ⛶ plein écran · ⚙ administration (code PIN).
 

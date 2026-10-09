@@ -12,6 +12,8 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const OUTPUT = 'tombola-casino.html';
+// Copie pour GitHub Pages quand la source choisie est le dossier /docs.
+const PAGES_OUTPUT = 'docs/index.html';
 
 function build() {
   const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
@@ -29,9 +31,12 @@ function build() {
   return html.replace('<!DOCTYPE html>\n', '<!DOCTYPE html>\n' + banner);
 }
 
-module.exports = { build, OUTPUT };
+module.exports = { build, OUTPUT, PAGES_OUTPUT };
 
 if (require.main === module) {
-  fs.writeFileSync(path.join(root, OUTPUT), build());
-  console.log('✔ ' + OUTPUT + ' généré.');
+  const html = build();
+  fs.writeFileSync(path.join(root, OUTPUT), html);
+  fs.mkdirSync(path.join(root, 'docs'), { recursive: true });
+  fs.writeFileSync(path.join(root, PAGES_OUTPUT), html);
+  console.log('✔ ' + OUTPUT + ' et ' + PAGES_OUTPUT + ' générés.');
 }

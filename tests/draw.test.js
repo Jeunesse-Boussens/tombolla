@@ -258,10 +258,12 @@ test('le générateur à graine est uniforme (contrôle grossier)', () => {
   for (const b of buckets) assert.ok(b > 9500 && b < 10500, 'bucket ' + b);
 });
 
-test('le fichier autonome tombola-casino.html est à jour', () => {
+test('les fichiers autonomes (tombola-casino.html, docs/index.html) sont à jour', () => {
   const fs = require('node:fs');
   const path = require('node:path');
-  const { build, OUTPUT } = require('../tools/build-single.js');
-  const current = fs.readFileSync(path.join(__dirname, '..', OUTPUT), 'utf8');
-  assert.equal(current, build(), 'Relancez : node tools/build-single.js');
+  const { build, OUTPUT, PAGES_OUTPUT } = require('../tools/build-single.js');
+  for (const file of [OUTPUT, PAGES_OUTPUT]) {
+    const current = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+    assert.equal(current, build(), file + ' est périmé. Relancez : node tools/build-single.js');
+  }
 });

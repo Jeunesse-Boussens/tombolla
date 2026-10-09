@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#120004">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Tombola Casino — Nouvel An</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B0%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-screen="game">
+
+  <!-- Bannières globales -->
+  <div class="demo-banner" id="demo-banner">
+    <span class="demo-label">MODE DÉMO</span>
+    <span class="demo-text">Données fictives — la vraie soirée n’est pas touchée</span>
+    <button type="button" class="btn btn-small" id="demo-reset">↺ Réinitialiser la démo</button>
+    <button type="button" class="btn btn-small" id="demo-quit">Quitter la démo</button>
+  </div>
+  <div class="storage-warning" id="storage-warning">
+    ⚠ Sauvegarde automatique indisponible (stockage du navigateur bloqué ou plein).
+    Les données seront perdues à la fermeture : faites des sauvegardes sur fichier en administration !
+  </div>
+
+  <!-- ============================ ÉCRAN DE JEU ============================ -->
+  <section id="screen-game" class="screen screen-game">
+    <header class="marquee">
+      <div class="bulbs bulbs-row" data-bulbs="18"></div>
+      <h1 class="marquee-title" id="game-title">Grande Tombola du Nouvel An</h1>
+      <div class="bulbs bulbs-row" data-bulbs="18"></div>
+    </header>
+
+    <main class="game-main">
+      <div class="machine">
+        <div class="machine-frame" id="machine-frame">
+          <div class="bulbs bulbs-edge bulbs-top" data-bulbs="12"></div>
+          <div class="bulbs bulbs-edge bulbs-bottom" data-bulbs="12"></div>
+          <div class="bulbs bulbs-edge bulbs-left" data-bulbs="5"></div>
+          <div class="bulbs bulbs-edge bulbs-right" data-bulbs="5"></div>
+          <div class="reels" id="reels">
+            <div class="reel"><div class="reel-inner"><div class="strip"></div></div></div>
+            <div class="reel"><div class="reel-inner"><div class="strip"></div></div></div>
+            <div class="reel"><div class="reel-inner"><div class="strip"></div></div></div>
+            <div class="payline" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="game-message" id="game-message" aria-live="polite">Entrez votre numéro de ticket</div>
+      </div>
+
+      <div class="panel">
+        <div class="ticket-display" id="ticket-display">
+          <span class="ticket-label">TICKET N°</span>
+          <span class="ticket-value" id="ticket-value"></span>
+        </div>
+        <div class="keypad" id="keypad">
+          <button type="button" data-key="7">7</button>
+          <button type="button" data-key="8">8</button>
+          <button type="button" data-key="9">9</button>
+          <button type="button" data-key="4">4</button>
+          <button type="button" data-key="5">5</button>
+          <button type="button" data-key="6">6</button>
+          <button type="button" data-key="1">1</button>
+          <button type="button" data-key="2">2</button>
+          <button type="button" data-key="3">3</button>
+          <button type="button" data-key="clear" class="key-alt" aria-label="Effacer tout">C</button>
+          <button type="button" data-key="0">0</button>
+          <button type="button" data-key="back" class="key-alt" aria-label="Effacer le dernier chiffre">⌫</button>
+        </div>
+        <button type="button" class="btn-play" id="btn-play">JOUER</button>
+      </div>
+    </main>
+
+    <div class="game-toolbar">
+      <button type="button" class="tool-btn" id="btn-mute" title="Son">🔊</button>
+      <button type="button" class="tool-btn" id="btn-fullscreen" title="Plein écran">⛶</button>
+      <button type="button" class="tool-btn tool-admin" id="btn-admin" title="Administration">⚙</button>
+    </div>
+
+    <!-- Machine pas encore prête (tirage absent ou non verrouillé) -->
+    <div class="not-ready" id="not-ready" hidden>
+      <div class="not-ready-box">
+        <div class="not-ready-icon">🎰</div>
+        <h2>La machine se prépare…</h2>
+        <p id="not-ready-text">Aucun tirage n’a encore été configuré.</p>
+        <div class="not-ready-actions">
+          <button type="button" class="btn btn-primary btn-large" id="not-ready-admin">⚙ Configurer la soirée</button>
+          <button type="button" class="btn btn-large" id="not-ready-demo">🎲 Découvrir le mode démo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Résultat -->
+    <div class="result-overlay" id="result-overlay" hidden>
+      <div class="result-card" id="result-card"></div>
+      <div class="result-countdown"><div class="result-countdown-bar" id="result-countdown-bar"></div></div>
+    </div>
+    <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+  </section>
+
+  <!-- ========================= ADMINISTRATION ============================= -->
+  <section id="screen-admin" class="screen screen-admin" hidden>
+    <header class="admin-header">
+      <h1>⚙ Administration <span class="admin-mode" id="admin-mode"></span></h1>
+      <div class="admin-header-actions">
+        <button type="button" class="btn btn-primary" id="admin-backup">💾 Sauvegarder maintenant</button>
+        <button type="button" class="btn" id="admin-back">🎰 Retour au jeu</button>
+      </div>
+    </header>
+    <div class="admin-alerts" id="admin-alerts"></div>
+    <nav class="admin-tabs" id="admin-tabs" role="tablist">
+      <button type="button" role="tab" data-tab="dashboard">📊 Tableau de bord</button>
+      <button type="button" role="tab" data-tab="config">🎁 Lots &amp; tickets</button>
+      <button type="button" role="tab" data-tab="draw">🎲 Tirage</button>
+      <button type="button" role="tab" data-tab="log">📜 Journal</button>
+      <button type="button" role="tab" data-tab="settings">🔧 Réglages &amp; sécurité</button>
+    </nav>
+    <div class="admin-content" id="admin-content"></div>
+  </section>
+
+  <!-- ===================== VUE IMPRIMABLE / PLAN B ======================== -->
+  <section id="screen-print" class="screen screen-print" hidden>
+    <div class="print-toolbar no-print">
+      <button type="button" class="btn btn-primary" id="print-go">🖨 Imprimer</button>
+      <label><input type="checkbox" id="print-full"> Ajouter le tableau complet des tickets</label>
+      <button type="button" class="btn" id="print-back">← Retour à l’administration</button>
+    </div>
+    <div class="print-page" id="print-page"></div>
+  </section>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script src="js/draw.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/slot.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -14,7 +14,15 @@ Le résultat de chaque ticket est **tiré au sort à l'avance** : la machine n'e
 > ⚠ Ouvrez **toujours le même fichier, au même emplacement, dans le même navigateur** : les données sont enregistrées dans ce navigateur.
 > N'utilisez pas la **navigation privée** (rien n'y est conservé).
 
-**Tablette** : copiez le dossier dans l'appareil et ouvrez `index.html` avec Chrome (Android) ; sur iPad, le plus simple est d'utiliser un ordinateur portable ou de servir le dossier depuis un ordinateur du même réseau.
+### Téléphone / tablette : utilisez `tombola-casino.html`
+
+Sur Android ou iPad, le gestionnaire de fichiers n'ouvre que le fichier HTML, **sans** le dossier `js/` ni `style.css` : la page s'affiche alors sans mise en forme et ne fonctionne pas.
+Utilisez dans ce cas **`tombola-casino.html`** : c'est le site complet **dans un seul fichier** (identique à `index.html`). Il suffit de copier ce seul fichier sur l'appareil et de l'ouvrir avec Chrome.
+
+> ⚠ Selon la façon dont le fichier est ouvert (adresse commençant par `content://`), le navigateur du téléphone peut refuser la sauvegarde automatique : un **bandeau rouge** l'indique.
+> Ça suffit pour une démo. Pour la vraie soirée, utilisez de préférence un **ordinateur portable** (ouverture en `file://`, la sauvegarde automatique fonctionne), ou publiez le site sur GitHub Pages pour l'ouvrir en `https://`.
+
+Après toute modification du code : `node tools/build-single.js` régénère `tombola-casino.html`.
 
 Boutons discrets en haut à droite de la machine : 🔊 son · ⛶ plein écran · ⚙ administration (code PIN).
 
@@ -131,6 +139,7 @@ Si la panne survient en cours de soirée, imprimez de préférence une nouvelle 
 
 ```
 index.html        écrans : jeu, administration, vue imprimable
+tombola-casino.html  même site en un seul fichier (généré par tools/build-single.js)
 style.css         thème casino, mise en page tablette/ordinateur, impression
 js/draw.js        tirage à graine (cyrb128 + sfc32), validation, symboles des rouleaux, test de cohérence
 js/storage.js     localStorage (soirée et démo séparées), fichiers

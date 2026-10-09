@@ -3,7 +3,7 @@
  * Facultatif : nécessite Playwright (npm i -g playwright), qui n'est PAS
  * une dépendance du site. Le site est ouvert en file:// comme le jour J.
  *
- * Lancer :  node tests/ui/ui.e2e.mjs [dossier-captures] [--formats]
+ * Lancer :  node tests/ui/ui.e2e.mjs [dossier-captures] [--formats] [--page=tombola-casino.html]
  */
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
@@ -14,10 +14,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..', '..');
-const url = pathToFileURL(path.join(root, 'index.html')).href;
 const args = process.argv.slice(2);
 const formatsOnly = args.includes('--formats'); // ne teste que les formats d'écran
 const shots = path.resolve(args.find((a) => !a.startsWith('--')) || path.join(here, 'screenshots'));
+// --page=tombola-casino.html pour tester la version en un seul fichier.
+const pageArg = args.find((a) => a.startsWith('--page='));
+const url = pathToFileURL(path.join(root, pageArg ? pageArg.slice(7) : 'index.html')).href;
 fs.mkdirSync(shots, { recursive: true });
 
 async function loadPlaywright() {
